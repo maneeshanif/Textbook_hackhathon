@@ -1,0 +1,162 @@
+---
+title: "1.1 — Foundations of Physical AI"
+sidebar_label: "Week 1-2: Foundations"
+sidebar_position: 1
+description: "Introduction to Physical AI concepts, embodied intelligence, and humanoid robotics fundamentals"
+module: 1
+week: 1
+tags: [physical-ai, embodied-intelligence, humanoid-robotics, beginner]
+difficulty: beginner
+estimated_time: "2-3 hours"
+---
+
+# 1.1 — Foundations of Physical AI
+
+> **Summary**: Learn what Physical AI is, understand embodied intelligence, and explore the core principles of humanoid robotics design.
+
+## 🎯 Learning Objectives
+
+By the end of this section, you will be able to:
+- Define Physical AI and explain its core characteristics
+- Distinguish between traditional AI and embodied AI systems
+- Understand the concept of the embodiment hypothesis
+- Identify the key components of humanoid robots
+- Explain design tradeoffs in humanoid system development
+
+## 📋 Prerequisites
+
+- Basic understanding of artificial intelligence
+- No prior robotics experience required
+
+## 📖 Content
+
+### What is Physical AI?
+
+**Physical AI** (also called **Embodied AI**) refers to artificial intelligence systems that exist in and interact with the physical world through robotic bodies, sensors, and actuators. Unlike pure software AI that operates only in digital environments, Physical AI must:
+
+1. **Perceive** the physical world through sensors
+2. **Reason** about spatial relationships and physical constraints
+3. **Act** in the real world through actuators and motors
+4. **Learn** from physical interactions and feedback
+
+#### The Embodiment Hypothesis
+
+The **embodiment hypothesis** suggests that intelligence cannot be fully understood or developed without considering the physical body and its interactions with the environment. Key principles include:
+
+- **Situatedness**: Intelligence emerges from interaction with the environment
+- **Morphology**: Body structure influences cognitive capabilities  
+- **Sensorimotor Coordination**: Perception and action are deeply coupled
+- **Environmental Coupling**: The body serves as a bridge between mind and world
+
+### Examples of Physical AI
+
+Physical AI manifests in various forms:
+
+| System Type | Description | Examples |
+|------------|-------------|----------|
+| **Humanoid Robots** | Human-shaped robots with arms, legs, torso | Atlas (Boston Dynamics), Optimus (Tesla), ASIMO (Honda) |
+| **Industrial Robots** | Task-specific robots for manufacturing | Robotic arms, welding robots, assembly systems |
+| **Mobile Robots** | Autonomous navigation systems | Warehouse robots, delivery robots, agricultural bots |
+| **Social Robots** | Interaction-focused humanoid systems | Pepper (SoftBank), Sophia (Hanson Robotics) |
+| **Exoskeletons** | Wearable robotic systems | Medical rehab exos, industrial strength augmentation |
+
+### This Week's Sections
+
+1. **[1.1.1 — What is Physical AI?](./01-what-is-physical-ai)** (45 minutes)  
+   Understanding embodied intelligence and the sensorimotor loop
+
+2. **[1.1.2 — Humanoid Overview](./02-humanoid-overview)** (50 minutes)  
+   Robot subsystems, actuators, sensors, and control architecture
+
+3. **[1.1.3 — Design Principles and Tradeoffs](./03-design-principles)** (60 minutes)  
+   Engineering decisions, cost optimization, and design frameworks
+
+### Humanoid Robotics: Core Concepts
+
+A **humanoid robot** is an autonomous system with a human-like form, typically including:
+
+- **Head** with vision and audio sensors
+- **Torso** housing power and computing systems
+- **Arms** (2) with articulated joints and end-effectors
+- **Legs** (2) for bipedal locomotion
+- **Hands** with dexterous manipulation capabilities
+
+#### Why Humanoid Form?
+
+The humanoid form factor offers several advantages:
+
+✅ **Environment Compatibility**: Human environments (stairs, doors, tools) are designed for human morphology  
+✅ **Tool Use**: Can operate existing human tools without modification  
+✅ **Social Acceptance**: Human-like appearance facilitates natural human-robot interaction  
+✅ **Versatility**: General-purpose design suitable for many tasks  
+
+However, there are tradeoffs:
+
+❌ **Complexity**: More degrees of freedom = harder control  
+❌ **Stability**: Bipedal locomotion is inherently unstable  
+❌ **Energy Efficiency**: Less efficient than wheeled or tracked systems  
+❌ **Cost**: High component count increases manufacturing costs  
+
+### Design Tradeoffs in Humanoid Development
+
+| Aspect | Human-Like Approach | Practical Engineering |
+|--------|---------------------|----------------------|
+| Actuation | Muscle-like (pneumatic, hydraulic) | Electric motors, servos |
+| Locomotion | Full bipedal walking | Simplified gait, wheels |
+| Hands | 5 fingers, high DOF | 2-3 finger grippers |
+| Sensing | Biomimetic sensors | Camera arrays, lidar |
+| Power | Portable battery | Tethered / large battery pack |
+
+## 💻 Hands-On Exercise
+
+### Exercise 1.1.1: Physical AI Identification
+
+**Difficulty**: ⭐ Beginner  
+**Time**: 15 minutes
+
+**Task**: Analyze three AI systems and classify them as Physical AI or Traditional AI.
+
+1. **ChatGPT** - Natural language processing system
+2. **Boston Dynamics Spot** - Quadruped robot
+3. **Alexa** - Voice assistant (speaker-based)
+
+For each, identify:
+- Does it have a physical embodiment?
+- Does it interact with the physical world?
+- What sensors/actuators does it use?
+
+<details>
+<summary>💡 Hints</summary>
+
+- Consider whether the system's intelligence depends on physical interaction
+- Think about whether the AI could function the same way in pure software
+- Look for sensors beyond just cameras/microphones
+
+</details>
+
+<details>
+<summary>✅ Solution</summary>
+
+1. **ChatGPT**: **Traditional AI** - Pure software, no physical embodiment, operates entirely in digital domain
+2. **Boston Dynamics Spot**: **Physical AI** - Embodied robot with legs, IMU sensors, cameras, actuators for locomotion and manipulation
+3. **Alexa**: **Hybrid** - Core AI is traditional (cloud-based NLP), but speaker hardware provides physical interface (not true embodiment since it doesn't act in the world)
+
+</details>
+
+## 🔑 Key Takeaways
+
+- Physical AI systems must perceive, reason, and act in the real physical world
+- The embodiment hypothesis suggests that physical interaction is essential for certain types of intelligence
+- Humanoid robots offer versatility but come with complexity tradeoffs
+- Design decisions balance human-likeness with engineering practicality
+- Physical AI spans many applications from industrial to social robotics
+
+## 📚 Further Reading
+
+- [The Embodiment Hypothesis](https://doi.org/10.1016/S0004-3702(01)00090-4) - Pfeifer & Scheier (1999)
+- [Boston Dynamics Atlas Robot](https://www.bostondynamics.com/atlas) - State-of-the-art humanoid
+- [IEEE Robotics & Automation Magazine](https://www.ieee-ras.org/publications/ram) - Latest research
+
+## ➡️ Next Steps
+
+Continue to [1.1.1 — What is Physical AI?](./01-what-is-physical-ai) for a deeper dive into Physical AI principles.
