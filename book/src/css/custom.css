@@ -3,6 +3,9 @@
  * Defines theme variables for light and dark modes.
  */
 
+/* Import Urdu fonts for RTL support */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
+
 /* Light mode theme variables */
 :root {
   /* Primary colors - teal/blue for technology theme */
@@ -78,4 +81,90 @@
 /* Admonitions - for notes, tips, warnings */
 .admonition {
   margin-bottom: 1.5rem;
+}
+
+/* Smooth transitions for theme switching */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  transition: background-color 0.3s ease;
+}
+
+/* Enhanced focus states for accessibility */
+:focus-visible {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Theme toggle button enhancement */
+button[title="Switch between dark and light mode"] {
+  transition: transform 0.2s ease;
+}
+
+button[title="Switch between dark and light mode"]:hover {
+  transform: scale(1.1);
+}
+
+/* Code block copy button - better visibility */
+.clean-btn {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.clean-btn:hover {
+  opacity: 1;
+}
+
+/* Math equations - better rendering */
+.katex {
+  font-size: 1.1em;
+}
+
+.katex-display {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Sidebar - better visual hierarchy */
+.theme-doc-sidebar-item-category {
+  font-weight: 600;
+}
+
+/* Scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Dark mode - improved contrast for readability */
+[data-theme='dark'] {
+  --ifm-background-color: #1b1b1d;
+  --ifm-background-surface-color: #242526;
+}
+
+[data-theme='dark'] .markdown {
+  color: #e3e3e3;
+}
+
+/* Light mode - warm background for reduced eye strain */
+[data-theme='light'] {
+  --ifm-background-color: #fafafa;
+}
+
+/* Print styles - for PDF export */
+@media print {
+  .navbar,
+  .theme-doc-sidebar-container,
+  .theme-doc-toc-desktop,
+  .pagination-nav {
+    display: none !important;
+  }
+
+  .main-wrapper {
+    width: 100%;
+    max-width: 100%;
+  }
 }

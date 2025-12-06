@@ -88,3 +88,58 @@
   /* Urdu text flows better with slightly more spacing */
   letter-spacing: 0.01em;
 }
+
+/* Urdu font improvements */
+[dir='rtl'] {
+  font-family: 'Noto Nastaliq Urdu', 'Jameel Noori Nastaleeq', 'Alvi Nastaleeq', serif;
+  line-height: 2;
+}
+
+/* Keep UI elements in sans-serif */
+[dir='rtl'] .navbar,
+[dir='rtl'] .menu,
+[dir='rtl'] .footer,
+[dir='rtl'] button {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+}
+
+/* Admonitions in RTL */
+[dir='rtl'] .admonition {
+  text-align: right;
+}
+
+[dir='rtl'] .admonition-icon {
+  margin-right: 0;
+  margin-left: 0.4rem;
+}
+
+/* Lists in RTL */
+[dir='rtl'] ul,
+[dir='rtl'] ol {
+  padding-right: 2rem;
+  padding-left: 0;
+}
+
+/* Math equations - keep LTR */
+[dir='rtl'] .katex,
+[dir='rtl'] .katex-display {
+  direction: ltr;
+  text-align: center;
+}
+
+/* Tables - adjust for RTL */
+[dir='rtl'] table {
+  direction: rtl;
+}
+
+/* Search box in RTL */
+[dir='rtl'] .navbar__search-input {
+  padding-right: 2.5rem;
+  padding-left: 1rem;
+}
+
+/* Doc item metadata (reading time, etc.) */
+[dir='rtl'] .theme-doc-footer-edit-meta-row {
+  justify-content: flex-start;
+}

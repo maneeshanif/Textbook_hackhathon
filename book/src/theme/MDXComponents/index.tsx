@@ -11,10 +11,10 @@ import MDXImg from '@theme/MDXComponents/Img';
 import Admonition from '@theme/Admonition';
 import Mermaid from '@theme/Mermaid';
 
-// Custom components for textbook (will be implemented in Phase 3+)
-// import DifficultyBadge from '@site/src/components/DifficultyBadge';
-// import ChatbotPlaceholder from '@site/src/components/ChatbotPlaceholder';
-// import ChapterHeader from '@site/src/components/ChapterHeader';
+// Custom components for textbook
+import DifficultyBadge from '@site/src/components/DifficultyBadge';
+import ChatbotPlaceholder from '@site/src/components/ChatbotPlaceholder';
+import ChapterHeader from '@site/src/components/ChapterHeader';
 
 import type {MDXComponentsObject} from '@theme/MDXComponents';
 
@@ -36,10 +36,10 @@ const MDXComponents: MDXComponentsObject = {
   h6: (props: ComponentProps<'h6'>) => <MDXHeading as="h6" {...props} />,
   admonition: Admonition,
   mermaid: Mermaid,
-  // Custom components (uncomment when implemented)
-  // DifficultyBadge,
-  // ChatbotPlaceholder,
-  // ChapterHeader,
+  // Custom components
+  ChapterHeader,
+  DifficultyBadge,
+  ChatbotPlaceholder,
 };
 
 export default MDXComponents;
