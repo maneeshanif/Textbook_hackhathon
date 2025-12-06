@@ -1,0 +1,141 @@
+---
+id: force-imu-sensors
+title: 3.2 Force and IMU Sensors
+sidebar_position: 2
+---
+
+# 3.2 Force and IMU Sensors
+
+## Force/Torque Sensors
+
+### Principle
+Measure forces $(F_x, F_y, F_z)$ and torques $(\tau_x, \tau_y, \tau_z)$ in 3D space using **strain gauges**.
+
+### Applications
+- **Foot Sensors**: Measure ground reaction forces for ZMP calculation
+- **Wrist Sensors**: Enable compliant manipulation and force control
+- **Collision Detection**: Detect unexpected contact
+
+### Example: ZMP Calculation from Foot Sensors
+
+```python
+import numpy as np
+
+def calculate_zmp(F_left, F_right, cop_left, cop_right):
+    """
+    Calculate ZMP from foot force sensors.
+    
+    Args:
+        F_left, F_right: Vertical forces on left and right feet (N)
+        cop_left, cop_right: Center of pressure positions (m)
+    
+    Returns:
+        ZMP position (m)
+    """
+    F_total = F_left + F_right
+    zmp = (F_left * cop_left + F_right * cop_right) / F_total
+    return zmp
+
+# Example
+F_left = 300  # N
+F_right = 200  # N
+cop_left = np.array([0, 0.1])  # 10 cm to the left
+cop_right = np.array([0, -0.1])  # 10 cm to the right
+
+zmp = calculate_zmp(F_left, F_right, cop_left, cop_right)
+print(f"ZMP position: {zmp}")
+```
+
+## Inertial Measurement Units (IMU)
+
+### Components
+
+**Accelerometer**: Measures linear acceleration $(a_x, a_y, a_z)$
+
+**Gyroscope**: Measures angular velocity $(\omega_x, \omega_y, \omega_z)$
+
+**Magnetometer** (optional): Measures magnetic field for absolute heading
+
+### 6-DOF vs 9-DOF IMUs
+- **6-DOF**: Accelerometer + Gyroscope
+- **9-DOF**: Accelerometer + Gyroscope + Magnetometer
+
+### Sensor Fusion for Orientation
+
+**Problem**: Integrate gyroscope to get orientation, but **drift accumulates**.
+
+**Solution**: Fuse accelerometer (measures gravity) and magnetometer (measures north) using a **complementary filter** or **Kalman filter**.
+
+### Complementary Filter
+
+```python
+import numpy as np
+
+class ComplementaryFilter:
+    def __init__(self, alpha=0.98):
+        self.alpha = alpha  # Gyroscope weight
+        self.roll = 0.0
+        self.pitch = 0.0
+        self.dt = 0.01  # 100 Hz
+    
+    def update(self, accel, gyro):
+        """
+        Update orientation estimate.
+        
+        Args:
+            accel: [ax, ay, az] in m/s^2
+            gyro: [gx, gy, gz] in rad/s
+        """
+        ax, ay, az = accel
+        gx, gy, gz = gyro
+        
+        # Accelerometer-based angle (noisy but no drift)
+        roll_accel = np.arctan2(ay, az)
+        pitch_accel = np.arctan2(-ax, np.sqrt(ay**2 + az**2))
+        
+        # Integrate gyroscope (smooth but drifts)
+        roll_gyro = self.roll + gx * self.dt
+        pitch_gyro = self.pitch + gy * self.dt
+        
+        # Fuse with complementary filter
+        self.roll = self.alpha * roll_gyro + (1 - self.alpha) * roll_accel
+        self.pitch = self.alpha * pitch_gyro + (1 - self.alpha) * pitch_accel
+        
+        return self.roll, self.pitch
+
+# Example usage
+cf = ComplementaryFilter(alpha=0.98)
+roll, pitch = cf.update(accel=[0, 0, 9.81], gyro=[0.01, 0, 0])
+print(f"Roll: {np.degrees(roll):.2f}°, Pitch: {np.degrees(pitch):.2f}°")
+```
+
+## Proprioceptive Sensors
+
+### Joint Encoders
+Measure joint angles $\theta_i$ and velocities $\dot{\theta}_i$.
+
+**Types**:
+- **Absolute Encoders**: Provide angle even after power loss
+- **Incremental Encoders**: Count pulses (require homing)
+
+**Resolution**: 12-bit (4096 counts/rev) to 20-bit
+
+### Current Sensors
+Measure motor current to estimate joint torques:
+
+$$
+\tau = K_t \cdot I
+$$
+
+Where $K_t$ is the motor torque constant.
+
+## Key Takeaways
+
+- **Force/Torque Sensors**: Critical for ZMP calculation and compliant control
+- **IMU**: Accelerometer + gyroscope provide orientation (with sensor fusion)
+- **Complementary Filter**: Simple, effective fusion of accel and gyro
+- **Proprioception**: Joint encoders and current sensors for state estimation
+
+---
+
+**Next:** [3.3 Actuator Technologies](./3.3-actuator-technologies)

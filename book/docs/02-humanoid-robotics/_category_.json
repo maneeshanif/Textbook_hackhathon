@@ -1,0 +1,8 @@
+{
+  "label": "Chapter 2: Humanoid Robotics Fundamentals",
+  "position": 2,
+  "link": {
+    "type": "generated-index",
+    "description": "Explore humanoid robot design, kinematics, dynamics, and locomotion control systems."
+  }
+}

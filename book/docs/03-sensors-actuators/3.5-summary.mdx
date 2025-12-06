@@ -1,0 +1,115 @@
+---
+id: summary
+title: 3.5 Summary
+sidebar_position: 5
+---
+
+# 3.5 Chapter Summary
+
+## Key Concepts
+
+### Vision Systems
+- **RGB Cameras**: High-resolution images for object recognition
+- **Depth Sensors**: Stereo cameras (triangulation) and ToF (time-of-flight)
+- **Lidar**: Long-range, accurate 3D mapping with laser scanning
+
+### Force and Inertial Sensors
+- **Force/Torque Sensors**: Measure contact forces for ZMP calculation and compliant control
+- **IMU**: Accelerometer + Gyroscope → Orientation estimation with sensor fusion
+- **Complementary Filter**: Fuses noisy accelerometer with drifting gyroscope
+
+### Actuators
+- **BLDC Motors**: Efficient (85-95%), precise, used in most modern humanoids
+- **Hydraulic**: High power-to-weight but complex maintenance
+- **Series Elastic Actuators**: Compliant, good for safe interaction
+
+## Technical Formulas
+
+### Stereo Depth
+
+$$
+Z = \frac{f \cdot B}{d}
+$$
+
+### Motor Torque
+
+$$
+\tau_{\text{output}} = G \cdot K_t \cdot I
+$$
+
+### SEA Torque Estimation
+
+$$
+\tau = K_s (\theta_{\text{motor}} - \theta_{\text{output}})
+$$
+
+### Complementary Filter
+
+$$
+\theta_{\text{fused}} = \alpha \cdot \theta_{\text{gyro}} + (1 - \alpha) \cdot \theta_{\text{accel}}
+$$
+
+## Design Trade-offs
+
+| Component | High Performance | Low Cost / Simple |
+|-----------|------------------|-------------------|
+| **Vision** | Lidar + RGB + Depth | Single RGB camera |
+| **IMU** | 9-DOF with Kalman filter | 6-DOF with complementary filter |
+| **Actuator** | Hydraulic (high power) | BLDC (efficient, reliable) |
+| **Force Sensor** | 6-axis F/T sensor | Single-axis load cell |
+
+## Real-World Systems
+
+### Boston Dynamics Atlas
+- **Vision**: Stereo cameras + lidar
+- **IMU**: High-rate (1 kHz) for balance
+- **Actuators**: Hydraulic (for dynamic jumps)
+- **Force Sensors**: 6-axis in feet
+
+### Tesla Optimus Gen 2
+- **Vision**: 8 cameras (no lidar)
+- **IMU**: 6-DOF in torso
+- **Actuators**: BLDC motors with harmonic drives
+- **Force Sensors**: Torque sensing in hands (11 DOF)
+
+## Further Reading
+
+### Textbooks
+1. Siciliano, B., & Khatib, O. (2016). *Springer Handbook of Robotics* — Chapter 7 (Sensors) and Chapter 8 (Actuators)
+
+### Papers
+2. Bloesch, M., et al. (2017). "Robust Visual Inertial Odometry Using a Direct EKF-Based Approach." *IROS*.
+3. Pratt, G. A., & Williamson, M. M. (1995). "Series Elastic Actuators." *IROS*.
+
+### Online Resources
+- **Intel RealSense**: https://www.intelrealsense.com
+- **YOLOv8 Documentation**: https://docs.ultralytics.com
+- **Open3D Tutorial**: http://www.open3d.org
+
+## Self-Assessment Checklist
+
+After completing this chapter, you should be able to:
+
+- [ ] Explain how stereo cameras calculate depth
+- [ ] Implement a complementary filter for IMU sensor fusion
+- [ ] Compare RGB cameras, depth sensors, and lidar
+- [ ] Calculate required motor torque and gear ratio
+- [ ] Understand series elastic actuator principles
+- [ ] Select sensors and actuators for a humanoid robot application
+
+---
+
+## What's Next?
+
+In **Chapter 4: AI Integration and Applications**, we will explore:
+
+- **Computer Vision**: Object detection, scene understanding, SLAM
+- **Reinforcement Learning**: Training robots through trial and error
+- **Imitation Learning**: Learning from human demonstrations
+- **Real-World Applications**: Current commercial and research deployments
+
+**Continue to:** [Chapter 4: AI Integration and Applications](../04-ai-integration/4.0-overview)
+
+---
+
+**Chapter 3 Complete!** 🎉

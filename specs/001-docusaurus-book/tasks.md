@@ -61,23 +61,23 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Create homepage in `book/src/pages/index.tsx` with book title, description, and "Start Reading" button
-- [ ] T015 [P] [US1] Create Chapter 1 category metadata in `book/docs/01-introduction/_category_.json`
-- [ ] T016 [P] [US1] Create Chapter 2 category metadata in `book/docs/02-humanoid-robotics/_category_.json`
-- [ ] T017 [P] [US1] Create Chapter 3 category metadata in `book/docs/03-sensors-actuators/_category_.json`
-- [ ] T018 [P] [US1] Create Chapter 4 category metadata in `book/docs/04-ai-integration/_category_.json`
-- [ ] T019 [US1] Create `book/docs/01-introduction/1.0-overview.mdx` with ChapterHeader and placeholder content
-- [ ] T020 [P] [US1] Create `book/docs/01-introduction/1.1-what-is-physical-ai.mdx` with section content
-- [ ] T021 [P] [US1] Create `book/docs/01-introduction/1.2-history-evolution.mdx` with section content
-- [ ] T022 [P] [US1] Create `book/docs/01-introduction/1.3-exercises.mdx` with exercise placeholders
-- [ ] T023 [P] [US1] Create `book/docs/01-introduction/1.4-summary.mdx` with chapter summary
-- [ ] T024 [US1] Create `book/docs/02-humanoid-robotics/2.0-overview.mdx` with ChapterHeader and placeholder content
-- [ ] T025 [P] [US1] Create `book/docs/02-humanoid-robotics/2.1-anatomy.mdx` with section content
-- [ ] T026 [P] [US1] Create `book/docs/02-humanoid-robotics/2.2-locomotion.mdx` with section content
-- [ ] T027 [US1] Create `book/docs/03-sensors-actuators/3.0-overview.mdx` with ChapterHeader and placeholder content
-- [ ] T028 [P] [US1] Create `book/docs/03-sensors-actuators/3.1-sensor-types.mdx` with section content
-- [ ] T029 [US1] Create `book/docs/04-ai-integration/4.0-overview.mdx` with ChapterHeader and placeholder content
-- [ ] T030 [P] [US1] Create `book/docs/04-ai-integration/4.1-machine-learning.mdx` with section content
+- [x] T014 [US1] Create homepage in `book/src/pages/index.tsx` with book title, description, and "Start Reading" button
+- [x] T015 [P] [US1] Create Chapter 1 category metadata in `book/docs/01-introduction/_category_.json`
+- [x] T016 [P] [US1] Create Chapter 2 category metadata in `book/docs/02-humanoid-robotics/_category_.json`
+- [x] T017 [P] [US1] Create Chapter 3 category metadata in `book/docs/03-sensors-actuators/_category_.json`
+- [x] T018 [P] [US1] Create Chapter 4 category metadata in `book/docs/04-ai-integration/_category_.json`
+- [x] T019 [US1] Create `book/docs/01-introduction/1.0-overview.mdx` with ChapterHeader and placeholder content
+- [x] T020 [P] [US1] Create `book/docs/01-introduction/1.1-what-is-physical-ai.mdx` with section content
+- [x] T021 [P] [US1] Create `book/docs/01-introduction/1.2-history-evolution.mdx` with section content (created as 1.2-humanoid-robotics-overview.mdx + 1.3-historical-development.mdx)
+- [x] T022 [P] [US1] Create `book/docs/01-introduction/1.3-exercises.mdx` with exercise placeholders (created as 1.4-exercises.mdx)
+- [x] T023 [P] [US1] Create `book/docs/01-introduction/1.4-summary.mdx` with chapter summary (created as 1.5-summary.mdx)
+- [x] T024 [US1] Create `book/docs/02-humanoid-robotics/2.0-overview.mdx` with ChapterHeader and placeholder content
+- [x] T025 [P] [US1] Create `book/docs/02-humanoid-robotics/2.1-anatomy.mdx` with section content (created as 2.1-kinematics.mdx, 2.2-dynamics.mdx, 2.3-locomotion-gait.mdx with technical depth)
+- [x] T026 [P] [US1] Create `book/docs/02-humanoid-robotics/2.2-locomotion.mdx` with section content (covered in 2.3-locomotion-gait.mdx)
+- [x] T027 [US1] Create `book/docs/03-sensors-actuators/3.0-overview.mdx` with ChapterHeader and placeholder content
+- [x] T028 [P] [US1] Create `book/docs/03-sensors-actuators/3.1-sensor-types.mdx` with section content (created as 3.1-vision-systems.mdx, 3.2-force-imu-sensors.mdx, 3.3-actuator-technologies.mdx with technical depth)
+- [x] T029 [US1] Create `book/docs/04-ai-integration/4.0-overview.mdx` with ChapterHeader and placeholder content
+- [x] T030 [P] [US1] Create `book/docs/04-ai-integration/4.1-machine-learning.mdx` with section content (created as 4.1-computer-vision.mdx, 4.2-learning-based-control.mdx, 4.3-real-world-applications.mdx with technical depth)
 - [ ] T031 [US1] Implement ChapterHeader component in `book/src/components/ChapterHeader/index.tsx` per contract
 - [ ] T032 [P] [US1] Create ChapterHeader styles in `book/src/components/ChapterHeader/styles.module.css`
 

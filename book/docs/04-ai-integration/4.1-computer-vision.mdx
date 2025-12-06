@@ -1,0 +1,196 @@
+---
+id: computer-vision
+title: 4.1 Computer Vision
+sidebar_position: 1
+---
+
+# 4.1 Computer Vision
+
+## Introduction
+
+Computer vision enables robots to **perceive and understand** their environment. Key tasks:
+
+1. **Object Detection**: Identify and locate objects in images
+2. **Semantic Segmentation**: Label each pixel with an object class
+3. **SLAM**: Build a map while localizing the robot
+4. **Visual Servoing**: Control robot based on visual feedback
+
+## Object Detection
+
+### YOLO (You Only Look Once)
+
+**Approach**: Single-pass convolutional neural network that predicts bounding boxes and class probabilities.
+
+**Advantages**:
+- Fast (30-120 fps on GPU)
+- Accurate (80-90% mAP on COCO dataset)
+- End-to-end trainable
+
+### Example: Detecting Objects in Real-Time
+
+```python
+from ultralytics import YOLO
+import cv2
+
+# Load pre-trained YOLOv8 model
+model = YOLO('yolov8n.pt')
+
+# Open webcam
+cap = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    
+    # Run inference
+    results = model(frame, conf=0.5)  # 50% confidence threshold
+    
+    # Extract detections
+    for result in results:
+        boxes = result.boxes
+        for box in boxes:
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+            cls = int(box.cls[0])
+            conf = float(box.conf[0])
+            label = f"{model.names[cls]} {conf:.2f}"
+            
+            # Draw bounding box
+            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+            cv2.putText(frame, label, (int(x1), int(y1) - 10),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    
+    cv2.imshow('Object Detection', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+```
+
+## SLAM (Simultaneous Localization and Mapping)
+
+### Problem
+
+A robot must:
+1. **Localize**: Determine its position in the environment
+2. **Map**: Build a representation of the environment
+
+**Chicken-and-egg problem**: Need a map to localize, need localization to build a map.
+
+### Visual SLAM
+
+**Approach**: Use camera images to track features and triangulate 3D positions.
+
+**Popular Algorithms**:
+- **ORB-SLAM3**: Feature-based, real-time, works with monocular, stereo, RGB-D
+- **LSD-SLAM**: Direct method (no feature extraction)
+
+### Example: ORB-SLAM3 (Conceptual)
+
+```python
+# Pseudocode for ORB-SLAM3 pipeline
+import cv2
+import numpy as np
+
+class VisualSLAM:
+    def __init__(self):
+        self.orb = cv2.ORB_create()
+        self.map = {}  # 3D points
+        self.pose = np.eye(4)  # 4x4 transformation matrix
+    
+    def track(self, frame):
+        # 1. Extract ORB features
+        keypoints, descriptors = self.orb.detectAndCompute(frame, None)
+        
+        # 2. Match with previous frame
+        matches = self.match_features(descriptors)
+        
+        # 3. Estimate camera pose (PnP)
+        self.pose = self.estimate_pose(matches)
+        
+        # 4. Triangulate new 3D points
+        new_points = self.triangulate(matches)
+        self.map.update(new_points)
+        
+        return self.pose, self.map
+```
+
+## Semantic Segmentation
+
+**Task**: Assign a class label to every pixel in an image.
+
+**Applications**:
+- Identify walkable surfaces
+- Detect obstacles (walls, furniture)
+- Recognize objects for manipulation
+
+### Example: DeepLab
+
+```python
+import torch
+from torchvision.models.segmentation import deeplabv3_resnet50
+
+# Load pre-trained model
+model = deeplabv3_resnet50(pretrained=True)
+model.eval()
+
+# Process image
+input_tensor = preprocess(image)  # Resize, normalize
+with torch.no_grad():
+    output = model(input_tensor)['out'][0]
+    output_predictions = output.argmax(0).byte().cpu().numpy()
+
+# Visualize segmentation mask
+segmentation_mask = output_predictions
+```
+
+## Visual Servoing
+
+**Task**: Control robot based on visual feedback to achieve a goal (e.g., grasp an object).
+
+### Image-Based Visual Servoing (IBVS)
+
+$$
+\dot{\mathbf{q}} = J_{\text{image}}^{-1} \lambda (\mathbf{s}^* - \mathbf{s})
+$$
+
+Where:
+- $\mathbf{s}$: Current image features (e.g., pixel coordinates)
+- $\mathbf{s}^*$: Desired image features
+- $J_{\text{image}}$: Image Jacobian
+- $\lambda$: Gain
+
+### Example: Align Robot with Object
+
+```python
+def visual_servoing_step(current_pixel, target_pixel, K_p=0.01):
+    """
+    Compute joint velocities to align end-effector with target in image.
+    
+    Args:
+        current_pixel: [u, v] current object position in image
+        target_pixel: [u*, v*] desired object position
+        K_p: Proportional gain
+    
+    Returns:
+        Joint velocities
+    """
+    error = np.array(target_pixel) - np.array(current_pixel)
+    velocity_camera = K_p * error  # Simple proportional control
+    
+    # Convert to joint velocities via Jacobian (simplified)
+    joint_velocities = compute_joint_velocities(velocity_camera)
+    return joint_velocities
+```
+
+## Key Takeaways
+
+- **Object Detection**: YOLO provides real-time detection for manipulation tasks
+- **SLAM**: Enables autonomous navigation by building a map and localizing
+- **Semantic Segmentation**: Pixel-level understanding for scene parsing
+- **Visual Servoing**: Closed-loop control using visual feedback
+
+---
+
+**Next:** [4.2 Learning-Based Control](./4.2-learning-based-control)

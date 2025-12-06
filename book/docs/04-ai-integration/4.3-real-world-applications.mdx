@@ -1,0 +1,203 @@
+---
+id: real-world-applications
+title: 4.3 Real-World Applications
+sidebar_position: 3
+---
+
+# 4.3 Real-World Applications
+
+## Industrial Automation
+
+### Warehouse Logistics
+
+**Companies**: Amazon Robotics, Boston Dynamics (Stretch), Agility Robotics (Digit)
+
+**Tasks**:
+- Package sorting and palletizing
+- Inventory management
+- Last-mile delivery
+
+**Technology**:
+- Computer vision for box detection
+- Motion planning for collision-free navigation
+- Force control for gentle handling
+
+### Manufacturing Assembly
+
+**Companies**: ABB, KUKA, Fanuc
+
+**Tasks**:
+- Welding, painting, assembly
+- Quality inspection
+- Collaborative tasks with human workers (cobots)
+
+**Technology**:
+- Precise trajectory following (±0.1 mm)
+- Force/torque sensing for assembly
+- Safety-rated control systems
+
+## Service Robotics
+
+### Home Assistance
+
+**Prototypes**: Tesla Optimus, 1X Neo, Toyota T-HR3
+
+**Tasks**:
+- Cleaning (vacuuming, dishwashing)
+- Cooking and meal preparation
+- Elderly care and companionship
+
+**Challenges**:
+- Unstructured environments (cluttered homes)
+- Manipulation of diverse objects
+- Safety around humans
+
+### Healthcare
+
+**Systems**: da Vinci Surgical Robot, Ekso Bionics Exoskeleton
+
+**Tasks**:
+- Minimally invasive surgery
+- Rehabilitation (gait training)
+- Patient lifting and transfer
+
+**Technology**:
+- Teleoperation with haptic feedback
+- Sub-millimeter precision
+- Real-time imaging integration
+
+## Research and Exploration
+
+### Disaster Response
+
+**Platforms**: Boston Dynamics Atlas, NASA Valkyrie
+
+**Tasks**:
+- Search and rescue in collapsed buildings
+- Hazardous material handling
+- Inspection of damaged infrastructure
+
+**Challenges**:
+- Rough terrain navigation
+- Limited communication bandwidth
+- Autonomous operation without human control
+
+### Space Exploration
+
+**Systems**: NASA Robonaut 2, JAXA Kirobo
+
+**Tasks**:
+- Assist astronauts on ISS
+- Extravehicular activity (spacewalks)
+- Planetary surface exploration
+
+**Technology**:
+- Radiation-hardened electronics
+- Low-latency teleoperation (Earth-Moon: 2.5s delay)
+- Redundant systems for safety
+
+## Case Study: Tesla Optimus
+
+### Vision
+
+General-purpose humanoid for:
+- Factory work (Tesla Gigafactory)
+- Household tasks (cleaning, cooking)
+- Target price: $20,000-$30,000
+
+### Technology Stack
+
+**Hardware**:
+- 28 DOF with custom actuators
+- 11 DOF hands (dexterous manipulation)
+- Weight: 73 kg, Height: 1.73 m
+
+**AI**:
+- End-to-end neural networks (FSD-inspired)
+- Vision-only perception (8 cameras, no lidar)
+- Simulation training with Isaac Sim
+
+**Training**:
+- Imitation learning from human teleoperation
+- Reinforcement learning in simulation
+- Continuous deployment pipeline (fleet learning)
+
+### Current Status (2024)
+
+**Achievements**:
+- Can sort objects, fold laundry
+- Walk on uneven terrain
+- Demonstrated at Tesla AI Day
+
+**Limitations**:
+- Not yet commercially available
+- Limited real-world testing
+- Unknown reliability and safety metrics
+
+## Case Study: Figure 01
+
+### Vision
+
+AI-native humanoid for commercial deployment in warehouses and manufacturing.
+
+### Technology Stack
+
+**Hardware**:
+- Electric actuation, 1.68 m tall, 60 kg
+- Battery-powered (4-5 hours runtime)
+
+**AI**:
+- Partnership with OpenAI for VLM integration
+- Natural language command understanding
+- End-to-end vision-language-action model
+
+**Training**:
+- Large-scale data collection in real warehouses
+- Sim-to-real transfer with domain randomization
+
+### Achievements
+
+- Successfully deployed in BMW manufacturing plant (2024)
+- Can manipulate parts, follow verbal instructions
+- Demonstrated coffee-making task with VLM control
+
+## Challenges in Deployment
+
+### Technical Challenges
+
+1. **Robustness**: Handling edge cases and unexpected situations
+2. **Safety**: Certifying robots for human-robot interaction
+3. **Energy**: Battery life limits operational hours
+4. **Cost**: High upfront cost vs. human labor
+
+### Ethical and Social Challenges
+
+1. **Job Displacement**: Impact on labor markets
+2. **Privacy**: Cameras and sensors in homes
+3. **Accountability**: Who is responsible for robot failures?
+4. **Accessibility**: Ensuring equitable access to technology
+
+## Future Directions
+
+### Near-Term (2025-2030)
+
+- Commercial deployment in controlled environments (warehouses, factories)
+- Home assistance for specific tasks (cleaning, eldercare)
+- Collaborative robots in healthcare
+
+### Long-Term (2030+)
+
+- General-purpose household robots
+- Autonomous disaster response teams
+- Space colonies with humanoid workers
+
+## Key Takeaways
+
+- **Industrial**: Warehouse logistics and manufacturing assembly are most mature applications
+- **Service**: Home assistance and healthcare are emerging markets
+- **Research**: Disaster response and space exploration drive innovation
+- **Challenges**: Robustness, safety, cost, and ethical considerations remain
+
+---
+
+**Next:** [4.4 Exercises](./4.4-exercises)
