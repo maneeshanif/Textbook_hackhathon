@@ -1,0 +1,701 @@
+---
+title: "2.2.3 — Terrain Adaptation and Footstep Planning"
+sidebar_label: "2.2.3 — Terrain Adaptation"
+sidebar_position: 3
+description: "Adaptive locomotion for stairs, slopes, and uneven terrain with footstep planning"
+module: 2
+week: 9
+section: 3
+tags: [locomotion, terrain-adaptation, footstep-planning, stairs, slopes, uneven-ground]
+difficulty: advanced
+estimated_time: "4-5 hours"
+---
+
+:::info ترجمہ زیر التواء
+یہ صفحہ فی الحال انگریزی سے اردو میں ترجمہ کیا جا رہا ہے۔ مکمل مواد کے لیے براہ کرم انگریزی ورژن دیکھیں۔
+:::
+
+
+# 2.2.3 — Terrain Adaptation and Footstep Planning
+
+<DifficultyBadge level="intermediate" />
+
+> **Summary**: Enable bipedal robots to walk on stairs, slopes, and uneven terrain through intelligent footstep planning and adaptive control.
+
+## 🎯 Learning Objectives
+
+- Understand terrain perception and mapping
+- Implement footstep planning algorithms
+- Adapt gait patterns to terrain geometry
+- Handle stairs and slopes dynamically
+- Build robust terrain-adaptive controllers
+
+---
+
+## 📖 Theory: Adaptive Locomotion
+
+### The Terrain Challenge
+
+**Flat Ground Assumptions Break:**
+- Uneven terrain → variable foot heights
+- Slopes → shifted center of mass
+- Stairs → discrete height changes
+- Obstacles → constrained foot placement
+
+**Solution Requirements:**
+1. **Perception**: Detect terrain geometry
+2. **Planning**: Compute safe footstep locations
+3. **Adaptation**: Modify gait online
+4. **Stability**: Maintain balance throughout
+
+### Footstep Planning Problem
+
+**Discrete Planning:**
+- State: $(x, y, \theta)$ of each foot
+- Action: Place next foot at $(x', y', \theta')$
+- Constraint: Reachability, stability, collision-free
+- Objective: Minimize cost (time, energy, risk)
+
+**Cost Function:**
+$$
+J = \sum_{i=1}^{N} \left[ w_d \cdot d_i + w_h \cdot h_i + w_s \cdot s_i + w_t \cdot t_i \right]
+$$
+
+Where:
+- $d_i$: Distance cost (prefer shorter steps)
+- $h_i$: Height change cost (prefer flat)
+- $s_i$: Stability cost (maintain ZMP margin)
+- $t_i$: Terrain cost (avoid obstacles, prefer solid ground)
+
+---
+
+## 🎯 Part 1: Terrain Perception
+
+### Heightmap Representation
+
+**2.5D Heightmap:**
+- Grid: $M \times N$ cells
+- Each cell: $(x, y) \rightarrow z$ height
+- Resolution: 5-10 cm typical
+
+**From Depth Camera:**
+
+```python
+import numpy as np
+import cv2
+from scipy.ndimage import gaussian_filter
+
+class TerrainMapper:
+    """Build 2.5D heightmap from depth data."""
+    
+    def __init__(self, grid_size=0.05, map_width=4.0, map_height=4.0):
+        """
+        Initialize terrain mapper.
+        
+        Args:
+            grid_size: Cell size in meters (e.g., 0.05 = 5cm)
+            map_width: Map width in meters
+            map_height: Map height in meters
+        """
+        self.grid_size = grid_size
+        self.map_width = map_width
+        self.map_height = map_height
+        
+        # Grid dimensions
+        self.grid_w = int(map_width / grid_size)
+        self.grid_h = int(map_height / grid_size)
+        
+        # Heightmap: (grid_h × grid_w)
+        self.heightmap = np.zeros((self.grid_h, self.grid_w))
+        self.confidence = np.zeros((self.grid_h, self.grid_w))  # Measurement confidence
+    
+    def update_from_pointcloud(self, points: np.ndarray):
+        """
+        Update heightmap from 3D point cloud.
+        
+        Args:
+            points: (N × 3) array of [x, y, z] points
+        """
+        for point in points:
+            x, y, z = point
+            
+            # Convert to grid coordinates
+            grid_x = int((x + self.map_width/2) / self.grid_size)
+            grid_y = int((y + self.map_height/2) / self.grid_size)
+            
+            # Check bounds
+            if 0 <= grid_x < self.grid_w and 0 <= grid_y < self.grid_h:
+                # Update with exponential moving average
+                alpha = 0.3
+                self.heightmap[grid_y, grid_x] = (
+                    alpha * z + (1 - alpha) * self.heightmap[grid_y, grid_x]
+                )
+                self.confidence[grid_y, grid_x] = min(1.0, self.confidence[grid_y, grid_x] + 0.1)
+    
+    def get_height(self, x: float, y: float) -> float:
+        """Get terrain height at (x, y) world position."""
+        grid_x = int((x + self.map_width/2) / self.grid_size)
+        grid_y = int((y + self.map_height/2) / self.grid_size)
+        
+        if 0 <= grid_x < self.grid_w and 0 <= grid_y < self.grid_h:
+            return self.heightmap[grid_y, grid_x]
+        else:
+            return 0.0  # Unknown terrain
+    
+    def compute_terrain_normals(self) -> np.ndarray:
+        """
+        Compute surface normals for terrain analysis.
+        
+        Returns:
+            (grid_h × grid_w × 3) array of normal vectors
+        """
+        # Smooth heightmap
+        smooth_map = gaussian_filter(self.heightmap, sigma=1.0)
+        
+        # Compute gradients
+        grad_y, grad_x = np.gradient(smooth_map, self.grid_size)
+        
+        # Normal vectors: (-∂z/∂x, -∂z/∂y, 1) normalized
+        normals = np.zeros((self.grid_h, self.grid_w, 3))
+        normals[:, :, 0] = -grad_x
+        normals[:, :, 1] = -grad_y
+        normals[:, :, 2] = 1.0
+        
+        # Normalize
+        norms = np.linalg.norm(normals, axis=2, keepdims=True)
+        normals = normals / (norms + 1e-6)
+        
+        return normals
+    
+    def detect_obstacles(self, threshold=0.15) -> np.ndarray:
+        """
+        Detect obstacles as large height discontinuities.
+        
+        Args:
+            threshold: Height difference threshold in meters
+        
+        Returns:
+            Binary obstacle map (1 = obstacle)
+        """
+        # Compute height differences
+        diff_x = np.abs(np.diff(self.heightmap, axis=1))
+        diff_y = np.abs(np.diff(self.heightmap, axis=0))
+        
+        # Pad to original size
+        diff_x = np.pad(diff_x, ((0, 0), (0, 1)), mode='edge')
+        diff_y = np.pad(diff_y, ((0, 1), (0, 0)), mode='edge')
+        
+        # Obstacle if either gradient exceeds threshold
+        obstacles = ((diff_x > threshold) | (diff_y > threshold)).astype(np.uint8)
+        
+        return obstacles
+    
+    def visualize(self) -> np.ndarray:
+        """Create visualization of heightmap."""
+        # Normalize to 0-255
+        vis = ((self.heightmap - self.heightmap.min()) / 
+               (self.heightmap.max() - self.heightmap.min() + 1e-6) * 255)
+        vis = vis.astype(np.uint8)
+        
+        # Apply colormap
+        vis_color = cv2.applyColorMap(vis, cv2.COLORMAP_JET)
+        
+        # Overlay obstacles
+        obstacles = self.detect_obstacles()
+        vis_color[obstacles == 1] = [0, 0, 255]  # Red for obstacles
+        
+        return vis_color
+
+
+# Example usage
+if __name__ == '__main__':
+    mapper = TerrainMapper(grid_size=0.05, map_width=4.0, map_height=4.0)
+    
+    # Simulate point cloud from depth camera
+    np.random.seed(42)
+    x = np.random.uniform(-2, 2, 1000)
+    y = np.random.uniform(-2, 2, 1000)
+    z = 0.1 * np.sin(x) + 0.05 * np.cos(y)  # Wavy terrain
+    points = np.column_stack([x, y, z])
+    
+    mapper.update_from_pointcloud(points)
+    
+    # Compute terrain properties
+    normals = mapper.compute_terrain_normals()
+    obstacles = mapper.detect_obstacles(threshold=0.1)
+    
+    print(f"Heightmap shape: {mapper.heightmap.shape}")
+    print(f"Height range: {mapper.heightmap.min():.2f} to {mapper.heightmap.max():.2f} m")
+    print(f"Obstacles detected: {np.sum(obstacles)} cells")
+    
+    # Visualize
+    vis = mapper.visualize()
+    cv2.imshow('Terrain Map', vis)
+    cv2.waitKey(0)
+```
+
+---
+
+## 🎯 Part 2: Footstep Planning
+
+### A* Search for Footsteps
+
+**State Space:**
+- State: $(x, y, \theta, \text{foot})$ where foot ∈ \{left, right\}
+- Action: Place opposite foot at reachable location
+- Heuristic: Euclidean distance to goal
+
+**Reachability Constraints:**
+- Step length: $0.2 \leq L \leq 0.6$ m
+- Step width: $0.15 \leq W \leq 0.35$ m
+- Step height: $|h| \leq 0.25$ m (stairs up to 25cm)
+
+### Implementation: A* Footstep Planner
+
+```python
+import heapq
+from typing import List, Tuple, Optional
+import numpy as np
+
+class FootstepPlanner:
+    """Plan footstep sequence using A* search."""
+    
+    def __init__(self, terrain_map: TerrainMapper):
+        self.terrain = terrain_map
+        
+        # Footstep constraints (meters)
+        self.min_step_length = 0.2
+        self.max_step_length = 0.6
+        self.min_step_width = 0.15
+        self.max_step_width = 0.35
+        self.max_step_height = 0.25
+        
+        # Cost weights
+        self.w_distance = 1.0
+        self.w_height = 5.0
+        self.w_stability = 3.0
+        self.w_terrain = 2.0
+    
+    def plan(self, start: Tuple[float, float, float], 
+             goal: Tuple[float, float, float],
+             max_steps: int = 50) -> List[Tuple[float, float, float, str]]:
+        """
+        Plan footstep sequence from start to goal.
+        
+        Args:
+            start: (x, y, θ) initial stance
+            goal: (x, y, θ) goal stance
+            max_steps: Maximum number of steps
+        
+        Returns:
+            List of footsteps: [(x, y, θ, foot), ...]
+        """
+        # Priority queue: (f_cost, g_cost, state, foot, path)
+        start_state = (*start, 'left')
+        open_set = [(0, 0, start_state, [])]
+        closed_set = set()
+        
+        while open_set:
+            f_cost, g_cost, state, path = heapq.heappop(open_set)
+            
+            x, y, theta, foot = state
+            
+            # Goal check
+            if self._at_goal((x, y, theta), goal):
+                return path + [(x, y, theta, foot)]
+            
+            # Skip if visited
+            state_key = (round(x, 2), round(y, 2), round(theta, 2), foot)
+            if state_key in closed_set:
+                continue
+            closed_set.add(state_key)
+            
+            # Max steps reached
+            if len(path) >= max_steps:
+                continue
+            
+            # Generate successors (possible next footsteps)
+            next_foot = 'right' if foot == 'left' else 'left'
+            successors = self._get_successors(x, y, theta, next_foot)
+            
+            for succ_x, succ_y, succ_theta in successors:
+                # Compute cost
+                step_cost = self._compute_step_cost(
+                    (x, y, theta), (succ_x, succ_y, succ_theta), next_foot
+                )
+                
+                new_g = g_cost + step_cost
+                h_cost = self._heuristic((succ_x, succ_y, succ_theta), goal)
+                new_f = new_g + h_cost
+                
+                new_state = (succ_x, succ_y, succ_theta, next_foot)
+                new_path = path + [(x, y, theta, foot)]
+                
+                heapq.heappush(open_set, (new_f, new_g, new_state, new_path))
+        
+        # No path found
+        return []
+    
+    def _get_successors(self, x: float, y: float, theta: float, foot: str) -> List[Tuple]:
+        """Generate reachable footstep candidates."""
+        successors = []
+        
+        # Sample candidate positions
+        for step_len in np.linspace(self.min_step_length, self.max_step_length, 3):
+            for step_width in [self.min_step_width, 0.25, self.max_step_width]:
+                for d_theta in [-15, 0, 15]:  # Turning angles (degrees)
+                    # Compute foot position
+                    theta_rad = np.radians(theta + d_theta)
+                    
+                    # Foot offset (left/right)
+                    lateral = step_width if foot == 'left' else -step_width
+                    
+                    succ_x = x + step_len * np.cos(theta_rad) - lateral * np.sin(theta_rad)
+                    succ_y = y + step_len * np.sin(theta_rad) + lateral * np.cos(theta_rad)
+                    succ_theta = theta + d_theta
+                    
+                    # Check validity
+                    if self._is_valid_footstep(x, y, succ_x, succ_y):
+                        successors.append((succ_x, succ_y, succ_theta))
+        
+        return successors
+    
+    def _is_valid_footstep(self, x0: float, y0: float, x1: float, y1: float) -> bool:
+        """Check if footstep is valid (no obstacles, height OK)."""
+        # Check height difference
+        h0 = self.terrain.get_height(x0, y0)
+        h1 = self.terrain.get_height(x1, y1)
+        
+        if abs(h1 - h0) > self.max_step_height:
+            return False
+        
+        # Check obstacles
+        obstacles = self.terrain.detect_obstacles()
+        grid_x = int((x1 + self.terrain.map_width/2) / self.terrain.grid_size)
+        grid_y = int((y1 + self.terrain.map_height/2) / self.terrain.grid_size)
+        
+        if 0 <= grid_x < self.terrain.grid_w and 0 <= grid_y < self.terrain.grid_h:
+            if obstacles[grid_y, grid_x] == 1:
+                return False
+        
+        return True
+    
+    def _compute_step_cost(self, state0: Tuple, state1: Tuple, foot: str) -> float:
+        """Compute cost of taking a step."""
+        x0, y0, theta0 = state0
+        x1, y1, theta1 = state1
+        
+        # Distance cost
+        dist = np.sqrt((x1 - x0)**2 + (y1 - y0)**2)
+        cost_dist = self.w_distance * dist
+        
+        # Height cost
+        h0 = self.terrain.get_height(x0, y0)
+        h1 = self.terrain.get_height(x1, y1)
+        cost_height = self.w_height * abs(h1 - h0)
+        
+        # Stability cost (prefer wider stance)
+        stance_width = np.sqrt((x1 - x0)**2 + (y1 - y0)**2)
+        cost_stability = self.w_stability * (1.0 / (stance_width + 0.1))
+        
+        # Terrain cost (prefer flat, solid ground)
+        normals = self.terrain.compute_terrain_normals()
+        grid_x = int((x1 + self.terrain.map_width/2) / self.terrain.grid_size)
+        grid_y = int((y1 + self.terrain.map_height/2) / self.terrain.grid_size)
+        
+        if 0 <= grid_x < self.terrain.grid_w and 0 <= grid_y < self.terrain.grid_h:
+            normal = normals[grid_y, grid_x]
+            slope = np.arccos(normal[2])  # Angle from vertical
+            cost_terrain = self.w_terrain * slope
+        else:
+            cost_terrain = 100.0  # Penalize unknown terrain
+        
+        return cost_dist + cost_height + cost_stability + cost_terrain
+    
+    def _heuristic(self, state: Tuple, goal: Tuple) -> float:
+        """A* heuristic (Euclidean distance to goal)."""
+        x, y, theta = state
+        gx, gy, gtheta = goal
+        return np.sqrt((gx - x)**2 + (gy - y)**2)
+    
+    def _at_goal(self, state: Tuple, goal: Tuple, tol=0.2) -> bool:
+        """Check if state is at goal."""
+        x, y, theta = state
+        gx, gy, gtheta = goal
+        return np.sqrt((gx - x)**2 + (gy - y)**2) < tol
+
+
+# Example usage
+if __name__ == '__main__':
+    # Create terrain with stairs
+    mapper = TerrainMapper(grid_size=0.05, map_width=6.0, map_height=6.0)
+    
+    # Simulate stairs
+    x_coords = np.linspace(-3, 3, 500)
+    y_coords = np.linspace(-3, 3, 500)
+    X, Y = np.meshgrid(x_coords, y_coords)
+    
+    # Stairs: height increases every 0.5m
+    Z = np.floor(X / 0.5) * 0.2  # 20cm steps every 50cm
+    Z = np.clip(Z, 0, 1.0)
+    
+    points = np.column_stack([X.ravel(), Y.ravel(), Z.ravel()])
+    mapper.update_from_pointcloud(points)
+    
+    # Plan footsteps
+    planner = FootstepPlanner(mapper)
+    
+    start = (-2.0, 0.0, 0.0)  # Start at bottom
+    goal = (2.0, 0.0, 0.0)    # Goal at top
+    
+    print("Planning footsteps...")
+    footsteps = planner.plan(start, goal, max_steps=30)
+    
+    if footsteps:
+        print(f"Found path with {len(footsteps)} steps:")
+        for i, (x, y, theta, foot) in enumerate(footsteps[:10]):
+            h = mapper.get_height(x, y)
+            print(f"  Step {i}: {foot:5s} at ({x:.2f}, {y:.2f}, {h:.2f}m) θ={theta:.1f}°")
+    else:
+        print("No path found!")
+```
+
+---
+
+## 🎯 Part 3: Stair Climbing
+
+### Stair Geometry
+
+**Standard Stairs:**
+- Rise (height): 15-20 cm
+- Run (depth): 25-30 cm
+- Slope: ~30-35°
+
+**Control Challenges:**
+- Shifting COM vertically
+- Greater hip/knee torques required
+- Balance during single support
+
+### Implementation: Stair Climbing Controller
+
+```python
+class StairClimbingController:
+    """Adaptive controller for climbing stairs."""
+    
+    def __init__(self, nominal_gait):
+        self.nominal_gait = nominal_gait
+        
+        # Stair parameters (detected from terrain)
+        self.stair_rise = 0.18  # meters
+        self.stair_run = 0.28   # meters
+        
+        # Control gains
+        self.k_height = 2.0
+        self.k_pitch = 1.5
+    
+    def adapt_gait_for_stairs(self, phase: float, ascending: bool) -> dict:
+        """
+        Modify gait trajectory for stairs.
+        
+        Args:
+            phase: Gait phase ∈ [0, 1]
+            ascending: True for up, False for down
+        
+        Returns:
+            Dict with: foot_position, com_height, pitch
+        """
+        # Base gait
+        base_foot = self.nominal_gait.compute_foot_trajectory(phase)
+        
+        # Modify for stairs
+        if ascending:
+            # Lift foot higher during swing
+            if 0.2 < phase < 0.7:  # Swing phase
+                extra_lift = 0.1  # 10cm extra clearance
+                base_foot['z'] += extra_lift
+            
+            # Shift COM forward and up
+            com_shift_x = 0.05
+            com_shift_z = self.stair_rise / 2
+            
+            # Lean forward slightly
+            pitch_adjust = np.radians(5)
+        
+        else:  # Descending
+            # Lower foot gradually
+            if 0.2 < phase < 0.7:
+                base_foot['z'] -= self.stair_rise
+            
+            # Shift COM back and down
+            com_shift_x = -0.03
+            com_shift_z = -self.stair_rise / 2
+            
+            # Lean back slightly
+            pitch_adjust = np.radians(-5)
+        
+        return {
+            'foot_position': base_foot,
+            'com_offset': {'x': com_shift_x, 'z': com_shift_z},
+            'pitch': pitch_adjust
+        }
+    
+    def detect_stair_contact(self, foot_force: float, expected_height: float, 
+                            actual_height: float) -> bool:
+        """
+        Detect when foot contacts stair surface.
+        
+        Returns:
+            True if contact detected
+        """
+        force_threshold = 50.0  # Newtons
+        height_tolerance = 0.03  # 3cm
+        
+        contact = (foot_force > force_threshold and 
+                  abs(actual_height - expected_height) < height_tolerance)
+        
+        return contact
+
+
+# Example: Stair climbing simulation
+if __name__ == '__main__':
+    controller = StairClimbingController(nominal_gait=None)
+    
+    # Simulate ascending stairs (3 steps)
+    num_steps = 3
+    dt = 0.01
+    phase = 0.0
+    
+    print("Simulating stair climbing:")
+    for step in range(num_steps):
+        print(f"\nStep {step + 1}:")
+        for t in np.arange(0, 1, dt * 10):  # Sample every 0.1s
+            commands = controller.adapt_gait_for_stairs(t, ascending=True)
+            
+            if t in [0.0, 0.5]:
+                foot = commands['foot_position']
+                com = commands['com_offset']
+                print(f"  t={t:.1f}: foot_z={foot.get('z', 0):.3f}m, "
+                      f"com_offset=({com['x']:.3f}, {com['z']:.3f})")
+        
+        phase += 1.0
+```
+
+---
+
+## 💻 Hands-On Exercise
+
+### 🎯 Exercise: Complete Terrain-Adaptive Walking System
+
+**Difficulty**: ⭐⭐⭐ Advanced  
+**Time**: 120 minutes
+
+**Objective**: Build a system that walks over stairs and slopes using footstep planning.
+
+**Tasks**:
+1. Implement terrain mapper from depth camera
+2. Plan footstep sequence over stairs
+3. Execute adaptive gait controller
+4. Simulate in PyBullet with terrain
+
+**Starter Code**:
+
+```python
+import pybullet as p
+import pybullet_data
+
+class TerrainAdaptiveWalker:
+    """Complete system for terrain-adaptive bipedal walking."""
+    
+    def __init__(self):
+        # Initialize PyBullet
+        p.connect(p.GUI)
+        p.setAdditionalSearchPath(pybullet_data.getDataPath())
+        p.setGravity(0, 0, -9.81)
+        
+        # Load robot (use simple biped)
+        self.robot_id = self._load_robot()
+        
+        # Components
+        self.terrain_mapper = TerrainMapper(grid_size=0.05, map_width=6.0, map_height=6.0)
+        self.footstep_planner = FootstepPlanner(self.terrain_mapper)
+        self.stair_controller = StairClimbingController(nominal_gait=None)
+        
+        # State
+        self.current_step = 0
+        self.footstep_plan = []
+    
+    def _load_robot(self):
+        """Load humanoid robot model."""
+        # TODO: Load your robot URDF
+        # For now, use simple shapes
+        robot_id = p.loadURDF("humanoid.urdf", [0, 0, 1.0])
+        return robot_id
+    
+    def create_stairs(self, num_steps=5, rise=0.18, run=0.28):
+        """
+        Create staircase in simulation.
+        
+        TODO:
+        1. Create collision boxes for each step
+        2. Update terrain mapper with stair geometry
+        """
+        # YOUR CODE HERE
+        pass
+    
+    def run_walking_cycle(self, goal_position):
+        """
+        Execute complete walking cycle to goal.
+        
+        TODO:
+        1. Scan terrain with virtual depth camera
+        2. Plan footsteps from current position to goal
+        3. Execute footsteps with adaptive controller
+        4. Monitor stability and replan if needed
+        """
+        # YOUR CODE HERE
+        pass
+
+# Test
+if __name__ == '__main__':
+    walker = TerrainAdaptiveWalker()
+    walker.create_stairs(num_steps=5)
+    walker.run_walking_cycle(goal_position=(3.0, 0.0, 1.0))
+```
+
+**Success Criteria**:
+- ✅ Robot climbs 5-step staircase without falling
+- ✅ Footsteps follow planned trajectory
+- ✅ Maintains balance throughout (no tipping)
+- ✅ Adapts gait based on terrain perception
+
+---
+
+## 🧠 Key Takeaways
+
+1. **Terrain perception** requires heightmaps and obstacle detection
+2. **Footstep planning** uses A* search with reachability constraints
+3. **Stair climbing** needs vertical COM shifts and increased foot clearance
+4. **Adaptive control** modifies gait online based on terrain
+5. **Real robots** require robust replanning when terrain differs from plan
+
+---
+
+## 📚 Further Reading
+
+- **Paper**: "Footstep Planning for the Honda ASIMO Humanoid" (Chestnutt et al., 2005)
+- **Paper**: "Perception-less Terrain Adaptation Through Whole Body Control" (MIT, 2019)
+- **Tutorial**: [A* Pathfinding Explained](https://www.redblobgames.com/pathfinding/a-star/introduction.html)
+
+---
+
+## ➡️ Next Module
+
+Completed Module 2! Ready for sensors and actuators?
+
+**[Module 3: Sensors & Actuators →](../../module-3/)**
+
+Explore the hardware that makes robots perceive and act.
+
+---
+
+<ChatbotPlaceholder />

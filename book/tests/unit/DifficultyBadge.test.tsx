@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import DifficultyBadge from '../index';
+import DifficultyBadge from '../../src/components/DifficultyBadge';
 
 describe('DifficultyBadge', () => {
   it('renders beginner badge correctly', () => {

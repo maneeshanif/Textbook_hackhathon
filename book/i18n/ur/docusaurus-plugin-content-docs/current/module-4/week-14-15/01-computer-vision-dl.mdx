@@ -1,0 +1,845 @@
+---
+title: "4.1.1 — Computer Vision with Deep Learning"
+sidebar_label: "4.1.1 — Computer Vision + DL"
+sidebar_position: 1
+description: "Object detection, pose estimation, and scene understanding using deep neural networks"
+module: 4
+week: 14
+section: 1
+tags: [computer-vision, deep-learning, yolo, object-detection, pose-estimation, neural-networks]
+difficulty: advanced
+estimated_time: "4-5 hours"
+---
+
+:::info ترجمہ زیر التواء
+یہ صفحہ فی الحال انگریزی سے اردو میں ترجمہ کیا جا رہا ہے۔ مکمل مواد کے لیے براہ کرم انگریزی ورژن دیکھیں۔
+:::
+
+
+# 4.1.1 — Computer Vision with Deep Learning
+
+<DifficultyBadge level="advanced" />
+
+> **Summary**: Apply modern deep learning to robot vision — from object detection to pose estimation and scene understanding.
+
+## 🎯 Learning Objectives
+
+- Implement object detection with YOLO and Faster R-CNN
+- Apply pose estimation for human-robot interaction
+- Build semantic segmentation pipelines
+- Integrate vision systems with robot control
+- Optimize models for embedded deployment
+
+---
+
+## 📖 Theory: Deep Learning for Vision
+
+### Traditional CV vs. Deep Learning
+
+**Traditional Computer Vision:**
+- Hand-crafted features (SIFT, HOG, Haar cascades)
+- Shallow pipelines (feature extraction → classification)
+- Limited to simple patterns
+- Breaks on domain shift
+
+**Deep Learning:**
+- Learned hierarchical features
+- End-to-end optimization
+- Handles complex patterns
+- Transfer learning enables generalization
+
+### CNN Architecture Basics
+
+**Convolutional Neural Network:**
+
+```
+Input Image (224×224×3)
+    ↓
+Conv1 (64 filters, 3×3) → ReLU → MaxPool (2×2)
+    ↓
+Conv2 (128 filters, 3×3) → ReLU → MaxPool (2×2)
+    ↓
+Conv3 (256 filters, 3×3) → ReLU → MaxPool (2×2)
+    ↓
+Flatten
+    ↓
+FC1 (1024) → ReLU → Dropout
+    ↓
+FC2 (num_classes) → Softmax
+```
+
+**Mathematics:**
+- **Convolution**: $(f * g)[m,n] = \sum_i \sum_j f[i,j] \cdot g[m-i, n-j]$
+- **ReLU**: $f(x) = \max(0, x)$
+- **MaxPool**: $y_{i,j} = \max_{(m,n) \in R_{i,j}} x_{m,n}$
+
+---
+
+## 🎯 Part 1: Object Detection
+
+### YOLO (You Only Look Once)
+
+**Architecture:**
+- Single-stage detector (fast!)
+- Divides image into grid ($S \times S$)
+- Each cell predicts $B$ bounding boxes + class probabilities
+- Real-time: 30-60 FPS
+
+**Output Format:**
+- For each bounding box: $(x, y, w, h, \text{confidence}, c_1, c_2, \ldots, c_K)$
+  - $(x, y)$: Center coordinates
+  - $(w, h)$: Width and height
+  - $\text{confidence}$: $P(\text{object}) \times \text{IOU}$
+  - $c_i$: Class probabilities
+
+**Loss Function:**
+$$
+\mathcal{L} = \lambda_{\text{coord}} \sum_{i=0}^{S^2} \sum_{j=0}^{B} \mathbb{1}_{ij}^{\text{obj}} [(x_i - \hat{x}_i)^2 + (y_i - \hat{y}_i)^2]
+$$
+$$
++ \lambda_{\text{coord}} \sum_{i=0}^{S^2} \sum_{j=0}^{B} \mathbb{1}_{ij}^{\text{obj}} [(\sqrt{w_i} - \sqrt{\hat{w}_i})^2 + (\sqrt{h_i} - \sqrt{\hat{h}_i})^2]
+$$
+$$
++ \sum_{i=0}^{S^2} \sum_{j=0}^{B} \mathbb{1}_{ij}^{\text{obj}} (C_i - \hat{C}_i)^2
+$$
+$$
++ \lambda_{\text{noobj}} \sum_{i=0}^{S^2} \sum_{j=0}^{B} \mathbb{1}_{ij}^{\text{noobj}} (C_i - \hat{C}_i)^2
+$$
+$$
++ \sum_{i=0}^{S^2} \mathbb{1}_i^{\text{obj}} \sum_{c \in \text{classes}} (p_i(c) - \hat{p}_i(c))^2
+$$
+
+Where:
+- $\mathbb{1}_{ij}^{\text{obj}}$: Indicator that object appears in cell $i$, box $j$
+- $\lambda_{\text{coord}} = 5$, $\lambda_{\text{noobj}} = 0.5$ (penalize coordinates more)
+
+### Implementation: YOLOv8 for Robot Vision
+
+```python
+import numpy as np
+import cv2
+from ultralytics import YOLO
+from typing import List, Tuple, Dict
+
+class RobotVisionYOLO:
+    """Object detection for robot manipulation."""
+    
+    def __init__(self, model_size='n', conf_threshold=0.5, device='cuda'):
+        """
+        Initialize YOLO detector.
+        
+        Args:
+            model_size: 'n' (nano), 's' (small), 'm' (medium), 'l' (large), 'x' (xlarge)
+            conf_threshold: Minimum confidence for detection
+            device: 'cuda' or 'cpu'
+        """
+        self.model = YOLO(f'yolov8{model_size}.pt')
+        self.conf_threshold = conf_threshold
+        self.device = device
+        
+        # COCO class names
+        self.class_names = self.model.names
+        
+        # Classes relevant for manipulation
+        self.graspable_objects = {
+            39: 'bottle', 41: 'cup', 46: 'banana', 47: 'apple',
+            49: 'orange', 56: 'chair', 73: 'book'
+        }
+    
+    def detect(self, image: np.ndarray) -> List[Dict]:
+        """
+        Detect objects in image.
+        
+        Args:
+            image: RGB image (H × W × 3)
+        
+        Returns:
+            List of detections with keys: bbox, class, conf, name
+        """
+        results = self.model(image, conf=self.conf_threshold, device=self.device)
+        
+        detections = []
+        for result in results:
+            boxes = result.boxes
+            for box in boxes:
+                # Extract bounding box
+                xyxy = box.xyxy[0].cpu().numpy()  # [x1, y1, x2, y2]
+                conf = float(box.conf[0])
+                cls = int(box.cls[0])
+                
+                detection = {
+                    'bbox': xyxy,
+                    'class': cls,
+                    'conf': conf,
+                    'name': self.class_names[cls]
+                }
+                detections.append(detection)
+        
+        return detections
+    
+    def get_graspable_objects(self, image: np.ndarray) -> List[Dict]:
+        """Get only graspable objects."""
+        all_detections = self.detect(image)
+        graspable = [d for d in all_detections if d['class'] in self.graspable_objects]
+        return graspable
+    
+    def compute_grasp_point(self, bbox: np.ndarray, depth_image: np.ndarray = None) -> Tuple[int, int, float]:
+        """
+        Compute grasp point for detected object.
+        
+        Args:
+            bbox: Bounding box [x1, y1, x2, y2]
+            depth_image: Depth map (optional)
+        
+        Returns:
+            (u, v, depth): Grasp point in image coordinates + depth
+        """
+        x1, y1, x2, y2 = bbox
+        
+        # Simple heuristic: center of bounding box
+        u = int((x1 + x2) / 2)
+        v = int((y1 + y2) / 2)
+        
+        # Get depth if available
+        if depth_image is not None:
+            depth = depth_image[v, u]
+        else:
+            depth = None
+        
+        return u, v, depth
+    
+    def visualize(self, image: np.ndarray, detections: List[Dict]) -> np.ndarray:
+        """Draw bounding boxes and labels."""
+        vis_image = image.copy()
+        
+        for det in detections:
+            bbox = det['bbox'].astype(int)
+            x1, y1, x2, y2 = bbox
+            conf = det['conf']
+            name = det['name']
+            
+            # Draw box
+            color = (0, 255, 0) if det['class'] in self.graspable_objects else (255, 0, 0)
+            cv2.rectangle(vis_image, (x1, y1), (x2, y2), color, 2)
+            
+            # Draw label
+            label = f"{name} {conf:.2f}"
+            cv2.putText(vis_image, label, (x1, y1 - 10),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        
+        return vis_image
+
+
+# Example usage
+if __name__ == '__main__':
+    # Initialize detector
+    detector = RobotVisionYOLO(model_size='s', conf_threshold=0.5)
+    
+    # Load image
+    image = cv2.imread('scene.jpg')
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Detect objects
+    detections = detector.detect(image_rgb)
+    print(f"Detected {len(detections)} objects")
+    
+    # Filter graspable
+    graspable = detector.get_graspable_objects(image_rgb)
+    print(f"Graspable objects: {len(graspable)}")
+    
+    for obj in graspable:
+        print(f"  - {obj['name']} ({obj['conf']:.2f})")
+        u, v, _ = detector.compute_grasp_point(obj['bbox'])
+        print(f"    Grasp point: ({u}, {v})")
+    
+    # Visualize
+    vis = detector.visualize(image_rgb, detections)
+    cv2.imshow('Detections', cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
+    cv2.waitKey(0)
+```
+
+**Output Example:**
+```
+Detected 8 objects
+Graspable objects: 3
+  - bottle (0.87)
+    Grasp point: (345, 210)
+  - cup (0.92)
+    Grasp point: (512, 298)
+  - apple (0.78)
+    Grasp point: (189, 356)
+```
+
+---
+
+## 🎯 Part 2: Human Pose Estimation
+
+### MediaPipe Pose
+
+**33 Keypoints:**
+- 0-10: Face (nose, eyes, ears, mouth)
+- 11-22: Upper body (shoulders, elbows, wrists, hands)
+- 23-32: Lower body (hips, knees, ankles, feet)
+
+**Use Cases:**
+- Human-robot interaction
+- Gesture recognition
+- Safety monitoring
+- Imitation learning
+
+### Implementation: Pose Estimation for HRI
+
+```python
+import mediapipe as mp
+import numpy as np
+import cv2
+from typing import List, Dict, Tuple
+
+class HumanPoseEstimator:
+    """Estimate human pose for robot interaction."""
+    
+    def __init__(self):
+        self.mp_pose = mp.solutions.pose
+        self.mp_drawing = mp.solutions.drawing_utils
+        self.pose = self.mp_pose.Pose(
+            static_image_mode=False,
+            model_complexity=1,
+            enable_segmentation=False,
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5
+        )
+    
+    def process_frame(self, image: np.ndarray) -> Dict:
+        """
+        Estimate pose from RGB image.
+        
+        Args:
+            image: RGB image (H × W × 3)
+        
+        Returns:
+            Dict with landmarks and world_landmarks
+        """
+        # Convert to RGB if needed
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) if image.shape[2] == 3 else image
+        
+        # Process
+        results = self.pose.process(image_rgb)
+        
+        if results.pose_landmarks:
+            landmarks = []
+            for lm in results.pose_landmarks.landmark:
+                landmarks.append({
+                    'x': lm.x,  # Normalized [0, 1]
+                    'y': lm.y,
+                    'z': lm.z,  # Depth relative to hips
+                    'visibility': lm.visibility
+                })
+            
+            return {
+                'landmarks': landmarks,
+                'detected': True
+            }
+        else:
+            return {'detected': False}
+    
+    def get_hand_position(self, landmarks: List[Dict], hand='right') -> Tuple[float, float, float]:
+        """
+        Get hand position.
+        
+        Args:
+            landmarks: List of 33 landmarks
+            hand: 'right' or 'left'
+        
+        Returns:
+            (x, y, z): Hand wrist position
+        """
+        if hand == 'right':
+            idx = 16  # Right wrist
+        else:
+            idx = 15  # Left wrist
+        
+        lm = landmarks[idx]
+        return lm['x'], lm['y'], lm['z']
+    
+    def detect_gesture(self, landmarks: List[Dict]) -> str:
+        """
+        Detect simple gestures.
+        
+        Returns:
+            'wave', 'point', 'stop', 'unknown'
+        """
+        # Get key landmarks
+        r_shoulder = landmarks[12]
+        r_elbow = landmarks[14]
+        r_wrist = landmarks[16]
+        
+        # Wave detection: hand above shoulder, elbow bent
+        if r_wrist['y'] < r_shoulder['y'] and abs(r_wrist['x'] - r_elbow['x']) > 0.1:
+            return 'wave'
+        
+        # Point detection: arm extended, wrist in front
+        arm_length = np.sqrt((r_wrist['x'] - r_shoulder['x'])**2 + 
+                            (r_wrist['y'] - r_shoulder['y'])**2)
+        if arm_length > 0.4 and r_wrist['z'] < r_shoulder['z']:
+            return 'point'
+        
+        # Stop gesture: hand raised, palm forward
+        if r_wrist['y'] < r_shoulder['y'] and abs(r_wrist['z']) < 0.1:
+            return 'stop'
+        
+        return 'unknown'
+    
+    def compute_joint_angle(self, p1: Dict, p2: Dict, p3: Dict) -> float:
+        """
+        Compute angle at joint p2 formed by p1-p2-p3.
+        
+        Returns:
+            Angle in degrees
+        """
+        # Vectors
+        v1 = np.array([p1['x'] - p2['x'], p1['y'] - p2['y'], p1['z'] - p2['z']])
+        v2 = np.array([p3['x'] - p2['x'], p3['y'] - p2['y'], p3['z'] - p2['z']])
+        
+        # Angle
+        cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2) + 1e-6)
+        angle = np.arccos(np.clip(cos_angle, -1.0, 1.0))
+        
+        return np.degrees(angle)
+    
+    def visualize(self, image: np.ndarray, results: Dict) -> np.ndarray:
+        """Draw pose landmarks."""
+        vis_image = image.copy()
+        
+        if results['detected']:
+            # Convert landmarks to MediaPipe format
+            landmarks = results['landmarks']
+            # Draw with MediaPipe utilities
+            # (simplified for brevity)
+            for i, lm in enumerate(landmarks):
+                h, w, _ = image.shape
+                cx, cy = int(lm['x'] * w), int(lm['y'] * h)
+                cv2.circle(vis_image, (cx, cy), 5, (0, 255, 0), -1)
+        
+        return vis_image
+
+
+# Example: Gesture-controlled robot
+class GestureControlledRobot:
+    """Control robot with human gestures."""
+    
+    def __init__(self):
+        self.pose_estimator = HumanPoseEstimator()
+        self.current_gesture = 'unknown'
+    
+    def process_command(self, image: np.ndarray) -> str:
+        """
+        Process image and return robot command.
+        
+        Returns:
+            'move_forward', 'stop', 'turn_left', 'turn_right', 'none'
+        """
+        results = self.pose_estimator.process_frame(image)
+        
+        if not results['detected']:
+            return 'none'
+        
+        landmarks = results['landmarks']
+        gesture = self.pose_estimator.detect_gesture(landmarks)
+        
+        # Map gestures to commands
+        command_map = {
+            'wave': 'turn_right',
+            'point': 'move_forward',
+            'stop': 'stop',
+            'unknown': 'none'
+        }
+        
+        command = command_map.get(gesture, 'none')
+        return command
+
+
+# Example usage
+if __name__ == '__main__':
+    estimator = HumanPoseEstimator()
+    robot = GestureControlledRobot()
+    
+    cap = cv2.VideoCapture(0)
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        # Estimate pose
+        results = estimator.process_frame(frame)
+        
+        if results['detected']:
+            # Get gesture
+            landmarks = results['landmarks']
+            gesture = estimator.detect_gesture(landmarks)
+            
+            # Get robot command
+            command = robot.process_command(frame)
+            
+            # Display
+            cv2.putText(frame, f"Gesture: {gesture}", (10, 30),
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.putText(frame, f"Command: {command}", (10, 70),
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        
+        # Visualize
+        vis = estimator.visualize(frame, results)
+        cv2.imshow('Gesture Control', vis)
+        
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    
+    cap.release()
+    cv2.destroyAllWindows()
+```
+
+---
+
+## 🎯 Part 3: Semantic Segmentation
+
+### Mask R-CNN
+
+**Architecture:**
+- Two-stage detector
+- Stage 1: Region Proposal Network (RPN)
+- Stage 2: ROI classification + mask prediction
+- Outputs: Bounding box + class + pixel-wise mask
+
+**Use Case:** Grasp planning with precise object boundaries.
+
+### Implementation: Segmentation for Grasping
+
+```python
+import torch
+import torchvision
+from torchvision.models.detection import maskrcnn_resnet50_fpn
+from torchvision.transforms import functional as F
+import numpy as np
+import cv2
+
+class SegmentationGrasp:
+    """Grasp planning using semantic segmentation."""
+    
+    def __init__(self, device='cuda'):
+        self.device = device
+        self.model = maskrcnn_resnet50_fpn(pretrained=True).to(device)
+        self.model.eval()
+        
+        # COCO classes
+        self.classes = [
+            '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
+            'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'stop sign',
+            'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
+            'elephant', 'bear', 'zebra', 'giraffe', 'backpack', 'umbrella', 'handbag',
+            'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball', 'kite',
+            'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
+            'bottle', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana',
+            'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
+            'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'dining table',
+            'toilet', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
+            'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'book', 'clock',
+            'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
+        ]
+    
+    def segment(self, image: np.ndarray, conf_threshold=0.5):
+        """
+        Segment objects in image.
+        
+        Args:
+            image: RGB image (H × W × 3)
+            conf_threshold: Minimum confidence
+        
+        Returns:
+            Dict with boxes, masks, labels, scores
+        """
+        # Preprocess
+        image_tensor = F.to_tensor(image).unsqueeze(0).to(self.device)
+        
+        # Inference
+        with torch.no_grad():
+            predictions = self.model(image_tensor)[0]
+        
+        # Filter by confidence
+        keep = predictions['scores'] > conf_threshold
+        
+        boxes = predictions['boxes'][keep].cpu().numpy()
+        masks = predictions['masks'][keep].cpu().numpy()
+        labels = predictions['labels'][keep].cpu().numpy()
+        scores = predictions['scores'][keep].cpu().numpy()
+        
+        return {
+            'boxes': boxes,
+            'masks': masks,
+            'labels': labels,
+            'scores': scores
+        }
+    
+    def compute_grasp_from_mask(self, mask: np.ndarray) -> Tuple[int, int, float]:
+        """
+        Compute grasp point from segmentation mask.
+        
+        Args:
+            mask: Binary mask (H × W)
+        
+        Returns:
+            (u, v, angle): Grasp center and angle
+        """
+        # Threshold mask
+        binary_mask = (mask[0] > 0.5).astype(np.uint8)
+        
+        # Find contours
+        contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        if len(contours) == 0:
+            return None, None, None
+        
+        # Largest contour
+        contour = max(contours, key=cv2.contourArea)
+        
+        # Fit ellipse for grasp angle
+        if len(contour) >= 5:
+            ellipse = cv2.fitEllipse(contour)
+            center, axes, angle = ellipse
+            u, v = int(center[0]), int(center[1])
+        else:
+            M = cv2.moments(contour)
+            u = int(M['m10'] / M['m00'])
+            v = int(M['m01'] / M['m00'])
+            angle = 0
+        
+        return u, v, angle
+    
+    def visualize(self, image: np.ndarray, results: Dict) -> np.ndarray:
+        """Draw masks and boxes."""
+        vis_image = image.copy()
+        
+        for i in range(len(results['boxes'])):
+            box = results['boxes'][i].astype(int)
+            mask = results['masks'][i]
+            label = self.classes[results['labels'][i]]
+            score = results['scores'][i]
+            
+            # Draw mask
+            mask_binary = (mask[0] > 0.5).astype(np.uint8)
+            color_mask = np.zeros_like(vis_image)
+            color_mask[mask_binary == 1] = [0, 255, 0]
+            vis_image = cv2.addWeighted(vis_image, 1.0, color_mask, 0.4, 0)
+            
+            # Draw box
+            cv2.rectangle(vis_image, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2)
+            
+            # Draw label
+            cv2.putText(vis_image, f"{label} {score:.2f}", (box[0], box[1] - 10),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            
+            # Draw grasp point
+            u, v, angle = self.compute_grasp_from_mask(mask)
+            if u is not None:
+                cv2.circle(vis_image, (u, v), 5, (255, 0, 0), -1)
+                # Draw grasp orientation
+                length = 50
+                end_x = int(u + length * np.cos(np.radians(angle)))
+                end_y = int(v + length * np.sin(np.radians(angle)))
+                cv2.arrowedLine(vis_image, (u, v), (end_x, end_y), (255, 0, 0), 2)
+        
+        return vis_image
+
+
+# Example usage
+if __name__ == '__main__':
+    segmenter = SegmentationGrasp(device='cuda' if torch.cuda.is_available() else 'cpu')
+    
+    image = cv2.imread('objects.jpg')
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    
+    # Segment
+    results = segmenter.segment(image_rgb, conf_threshold=0.7)
+    
+    print(f"Detected {len(results['boxes'])} objects")
+    for i in range(len(results['boxes'])):
+        label = segmenter.classes[results['labels'][i]]
+        score = results['scores'][i]
+        u, v, angle = segmenter.compute_grasp_from_mask(results['masks'][i])
+        print(f"  {label} ({score:.2f}) - Grasp: ({u}, {v}) @ {angle:.1f}°")
+    
+    # Visualize
+    vis = segmenter.visualize(image_rgb, results)
+    cv2.imshow('Segmentation', cv2.cvtColor(vis, cv2.COLOR_RGB2BGR))
+    cv2.waitKey(0)
+```
+
+---
+
+## 💻 Hands-On Exercise
+
+### 🎯 Exercise 1: Vision-Guided Grasping System
+
+**Difficulty**: ⭐⭐⭐ Advanced  
+**Time**: 90 minutes
+
+**Objective:** Build a complete vision pipeline for robot grasping.
+
+**Tasks:**
+1. Detect graspable objects with YOLO
+2. Segment target object with Mask R-CNN
+3. Compute grasp pose from mask
+4. Visualize 3D grasp pose with depth
+5. Evaluate grasp quality
+
+**Starter Code:**
+
+```python
+class VisionGuidedGrasping:
+    """Complete vision system for grasping."""
+    
+    def __init__(self):
+        self.detector = RobotVisionYOLO(model_size='s')
+        self.segmenter = SegmentationGrasp()
+        self.camera_matrix = np.array([
+            [525.0, 0, 319.5],
+            [0, 525.0, 239.5],
+            [0, 0, 1]
+        ])  # Example intrinsics
+    
+    def process_scene(self, rgb_image: np.ndarray, depth_image: np.ndarray):
+        """
+        Process RGB-D scene and compute grasp poses.
+        
+        TODO:
+        1. Detect objects with YOLO
+        2. For highest-confidence graspable object:
+           a. Segment with Mask R-CNN
+           b. Compute 2D grasp point from mask
+           c. Convert to 3D using depth
+           d. Compute grasp quality score
+        3. Return best grasp pose
+        
+        Returns:
+            Dict with: position_3d, orientation, quality, object_name
+        """
+        # YOUR CODE HERE
+        pass
+    
+    def compute_3d_position(self, u: int, v: int, depth: float) -> np.ndarray:
+        """
+        Convert 2D pixel + depth to 3D position.
+        
+        Formula:
+            X = (u - cx) * depth / fx
+            Y = (v - cy) * depth / fy
+            Z = depth
+        """
+        fx, fy = self.camera_matrix[0, 0], self.camera_matrix[1, 1]
+        cx, cy = self.camera_matrix[0, 2], self.camera_matrix[1, 2]
+        
+        X = (u - cx) * depth / fx
+        Y = (v - cy) * depth / fy
+        Z = depth
+        
+        return np.array([X, Y, Z])
+    
+    def grasp_quality(self, mask: np.ndarray, depth_roi: np.ndarray) -> float:
+        """
+        Compute grasp quality score.
+        
+        Factors:
+        - Mask compactness (higher = better)
+        - Depth variance (lower = better)
+        - Object size (medium = better)
+        
+        Returns:
+            Score ∈ [0, 1]
+        """
+        # YOUR CODE HERE
+        pass
+
+# Test with real images
+if __name__ == '__main__':
+    system = VisionGuidedGrasping()
+    
+    rgb = cv2.imread('scene_rgb.png')
+    depth = np.load('scene_depth.npy')  # Depth in meters
+    
+    grasp = system.process_scene(rgb, depth)
+    
+    if grasp:
+        print(f"Best grasp:")
+        print(f"  Object: {grasp['object_name']}")
+        print(f"  Position: {grasp['position_3d']}")
+        print(f"  Orientation: {grasp['orientation']}°")
+        print(f"  Quality: {grasp['quality']:.2f}")
+```
+
+**Success Criteria:**
+- ✅ Detect and segment graspable objects
+- ✅ Compute valid 3D grasp poses
+- ✅ Grasp quality score correlates with success rate
+- ✅ System runs at >5 FPS
+
+<details>
+<summary>💡 Solution Hints</summary>
+
+**Grasp Quality Score:**
+```python
+def grasp_quality(self, mask: np.ndarray, depth_roi: np.ndarray) -> float:
+    # Compactness: ratio of area to perimeter²
+    area = np.sum(mask > 0.5)
+    contours, _ = cv2.findContours((mask[0] > 0.5).astype(np.uint8), 
+                                   cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    perimeter = cv2.arcLength(contours[0], True) if len(contours) > 0 else 1
+    compactness = 4 * np.pi * area / (perimeter**2 + 1e-6)
+    
+    # Depth variance (lower = flatter object = easier)
+    depth_std = np.std(depth_roi[mask[0] > 0.5])
+    depth_score = np.exp(-depth_std / 0.05)  # Penalize variance > 5cm
+    
+    # Size score (prefer medium objects)
+    size_px = np.sqrt(area)
+    ideal_size = 100  # pixels
+    size_score = np.exp(-((size_px - ideal_size) / ideal_size)**2)
+    
+    # Combine
+    quality = 0.4 * compactness + 0.3 * depth_score + 0.3 * size_score
+    return np.clip(quality, 0, 1)
+```
+
+</details>
+
+---
+
+## 🧠 Key Takeaways
+
+1. **Deep learning** enables robust perception beyond traditional CV
+2. **YOLO** provides real-time object detection (30-60 FPS)
+3. **Segmentation** gives precise object boundaries for grasping
+4. **Pose estimation** enables human-robot interaction
+5. **3D reasoning** requires combining vision with depth
+6. **Grasp quality** metrics guide decision-making
+
+---
+
+## 📚 Further Reading
+
+- **Paper**: "You Only Look Once: Unified, Real-Time Object Detection" (Redmon et al., 2016)
+- **Paper**: "Mask R-CNN" (He et al., 2017)
+- **Tutorial**: [Ultralytics YOLOv8 Docs](https://docs.ultralytics.com/)
+- **Tutorial**: [MediaPipe Pose](https://google.github.io/mediapipe/solutions/pose.html)
+
+---
+
+## ➡️ Next Section
+
+Ready for reinforcement learning?
+
+**[4.1.2 — Reinforcement Learning for Control →](./02-rl-control)**
+
+Learn to train robot policies with deep RL.
+
+---
+
+<ChatbotPlaceholder />

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ChatbotPlaceholder from '../index';
+import ChatbotPlaceholder from '../../src/components/ChatbotPlaceholder';
 
 describe('ChatbotPlaceholder', () => {
   it('renders with default props', () => {

@@ -1,0 +1,677 @@
+---
+title: "2.1.4 — Balance and Zero Moment Point (ZMP)"
+sidebar_label: "2.1.4 — Balance & ZMP"
+sidebar_position: 4
+description: "Understanding stability criteria and balance control for bipedal locomotion"
+module: 2
+week: 6
+section: 4
+tags: [balance, zmp, stability, bipedal, walking]
+difficulty: advanced
+estimated_time: "4-5 hours"
+---
+
+:::info ترجمہ زیر التواء
+یہ صفحہ فی الحال انگریزی سے اردو میں ترجمہ کیا جا رہا ہے۔ مکمل مواد کے لیے براہ کرم انگریزی ورژن دیکھیں۔
+:::
+
+
+# 2.1.4 — Balance and Zero Moment Point (ZMP)
+
+<DifficultyBadge level="intermediate" />
+
+> **Summary**: Master the fundamental stability criterion for bipedal robots — the key to standing, walking, and recovering from disturbances.
+
+## 🎯 Learning Objectives
+
+- Understand the Zero Moment Point (ZMP) concept
+- Compute ZMP from robot dynamics
+- Implement ZMP-based stability checking
+- Design balance controllers
+- Apply to humanoid walking
+
+---
+
+## 📖 What is Balance?
+
+### Static vs Dynamic Balance
+
+**Static Balance:**
+- Center of Mass (CoM) projects inside support polygon
+- Robot can remain stationary
+- Example: Standing still
+
+**Dynamic Balance:**
+- CoM may be outside support polygon
+- Motion maintains balance
+- Example: Running (single support phase)
+
+---
+
+## 🎯 Zero Moment Point (ZMP)
+
+### Definition
+
+**Zero Moment Point:** The point on the ground where the net moment (due to gravity and inertia) is zero.
+
+**Mathematical Definition:**
+
+For a robot with CoM at position $\mathbf{r}_{\text{com}} = [x_c, y_c, z_c]^T$ and acceleration $\ddot{\mathbf{r}}_{\text{com}}$:
+
+**ZMP Position** (on ground, $z = 0$):
+$$
+x_{\text{ZMP}} = x_c - \frac{z_c \ddot{x}_c}{g + \ddot{z}_c}
+$$
+
+$$
+y_{\text{ZMP}} = y_c - \frac{z_c \ddot{y}_c}{g + \ddot{z}_c}
+$$
+
+where $g = 9.81$ m/s² is gravity.
+
+### Physical Interpretation
+
+- **ZMP inside support polygon** → Robot is balanced
+- **ZMP on edge** → Robot is about to tip
+- **ZMP outside** → Robot is falling (unrecoverable without external support)
+
+### Simplified Model (Constant Height)
+
+Assuming CoM height constant ($\ddot{z}_c = 0$):
+$$
+x_{\text{ZMP}} = x_c - \frac{z_c}{g} \ddot{x}_c
+$$
+
+$$
+y_{\text{ZMP}} = y_c - \frac{z_c}{g} \ddot{y}_c
+$$
+
+---
+
+## 🧮 Computing ZMP
+
+### Linear Inverted Pendulum Model (LIPM)
+
+**Simplification:** Model humanoid as point mass at CoM height $h$, connected to ground by massless leg.
+
+**Equations of Motion:**
+
+$$
+\ddot{x}_c = \omega^2 (x_c - x_{\text{ZMP}})
+$$
+
+$$
+\ddot{y}_c = \omega^2 (y_c - y_{\text{ZMP}})
+$$
+
+where:
+$$
+\omega = \sqrt{\frac{g}{h}}
+$$
+
+**Natural frequency** of the pendulum (for $h = 0.8$ m, $\omega \approx 3.5$ rad/s).
+
+### Implementation
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
+
+class ZMPCalculator:
+    """Compute ZMP from CoM state."""
+    
+    def __init__(self, com_height=0.8, g=9.81):
+        """
+        Args:
+            com_height: Height of CoM above ground (m)
+            g: Gravity (m/s²)
+        """
+        self.h = com_height
+        self.g = g
+        self.omega = np.sqrt(g / com_height)
+    
+    def compute_zmp(self, com_pos, com_acc):
+        """Compute ZMP from CoM position and acceleration.
+        
+        Args:
+            com_pos: [x_c, y_c] CoM position (m)
+            com_acc: [ddx_c, ddy_c] CoM acceleration (m/s²)
+        
+        Returns:
+            zmp: [x_zmp, y_zmp] ZMP position (m)
+        """
+        x_c, y_c = com_pos
+        ddx_c, ddy_c = com_acc
+        
+        x_zmp = x_c - (self.h / self.g) * ddx_c
+        y_zmp = y_c - (self.h / self.g) * ddy_c
+        
+        return np.array([x_zmp, y_zmp])
+    
+    def is_balanced(self, zmp, support_polygon):
+        """Check if ZMP is inside support polygon.
+        
+        Args:
+            zmp: [x, y] ZMP position
+            support_polygon: Nx2 array of polygon vertices
+        
+        Returns:
+            bool: True if balanced
+        """
+        from matplotlib.path import Path
+        path = Path(support_polygon)
+        return path.contains_point(zmp)
+    
+    def stability_margin(self, zmp, support_polygon):
+        """Compute minimum distance from ZMP to polygon edges.
+        
+        Args:
+            zmp: [x, y] ZMP position
+            support_polygon: Nx2 array of polygon vertices
+        
+        Returns:
+            margin: Distance (m), negative if outside
+        """
+        from matplotlib.path import Path
+        path = Path(support_polygon)
+        
+        if not path.contains_point(zmp):
+            # Outside: negative margin
+            distances = [np.linalg.norm(zmp - vertex) for vertex in support_polygon]
+            return -min(distances)
+        else:
+            # Inside: distance to nearest edge
+            min_dist = float('inf')
+            n = len(support_polygon)
+            for i in range(n):
+                p1 = support_polygon[i]
+                p2 = support_polygon[(i+1) % n]
+                # Distance from point to line segment
+                dist = self._point_to_segment_distance(zmp, p1, p2)
+                min_dist = min(min_dist, dist)
+            return min_dist
+    
+    @staticmethod
+    def _point_to_segment_distance(point, seg_start, seg_end):
+        """Compute distance from point to line segment."""
+        seg = seg_end - seg_start
+        point_vec = point - seg_start
+        
+        seg_len_sq = np.dot(seg, seg)
+        if seg_len_sq == 0:
+            return np.linalg.norm(point_vec)
+        
+        t = max(0, min(1, np.dot(point_vec, seg) / seg_len_sq))
+        projection = seg_start + t * seg
+        return np.linalg.norm(point - projection)
+
+
+# Example: Walking CoM trajectory
+if __name__ == '__main__':
+    calc = ZMPCalculator(com_height=0.8)
+    
+    # Support polygon (single foot)
+    foot_length = 0.2  # m
+    foot_width = 0.1   # m
+    support_polygon = np.array([
+        [-foot_length/2, -foot_width/2],
+        [foot_length/2, -foot_width/2],
+        [foot_length/2, foot_width/2],
+        [-foot_length/2, foot_width/2]
+    ])
+    
+    # Simulate walking CoM trajectory
+    t = np.linspace(0, 2, 200)
+    freq = 1.0  # Hz
+    
+    # CoM moves forward and oscillates laterally
+    x_com = 0.4 * t  # Forward motion
+    y_com = 0.05 * np.sin(2 * np.pi * freq * t)  # Lateral sway
+    
+    # Accelerations
+    ddx_com = np.zeros_like(t)
+    ddy_com = -0.05 * (2*np.pi*freq)**2 * np.sin(2 * np.pi * freq * t)
+    
+    # Compute ZMP trajectory
+    zmp_trajectory = []
+    margins = []
+    
+    for i in range(len(t)):
+        com_pos = np.array([x_com[i], y_com[i]])
+        com_acc = np.array([ddx_com[i], ddy_com[i]])
+        
+        zmp = calc.compute_zmp(com_pos, com_acc)
+        margin = calc.stability_margin(zmp, support_polygon)
+        
+        zmp_trajectory.append(zmp)
+        margins.append(margin)
+    
+    zmp_trajectory = np.array(zmp_trajectory)
+    
+    # Plot
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    
+    # Trajectory plot
+    axes[0].plot(x_com, y_com, 'b-', linewidth=2, label='CoM')
+    axes[0].plot(zmp_trajectory[:, 0], zmp_trajectory[:, 1], 
+                 'r--', linewidth=2, label='ZMP')
+    
+    # Support polygon
+    poly = Polygon(support_polygon, fill=False, edgecolor='green', 
+                   linewidth=2, linestyle='--', label='Support Polygon')
+    axes[0].add_patch(poly)
+    
+    axes[0].set_xlabel('X (m)')
+    axes[0].set_ylabel('Y (m)')
+    axes[0].legend()
+    axes[0].grid(True)
+    axes[0].axis('equal')
+    axes[0].set_title('CoM and ZMP Trajectories')
+    
+    # Stability margin over time
+    axes[1].plot(t, np.array(margins) * 100, linewidth=2)
+    axes[1].axhline(0, color='red', linestyle='--', label='Instability Threshold')
+    axes[1].set_xlabel('Time (s)')
+    axes[1].set_ylabel('Stability Margin (cm)')
+    axes[1].legend()
+    axes[1].grid(True)
+    axes[1].set_title('Stability Margin Over Time')
+    
+    plt.tight_layout()
+    plt.show()
+    
+    # Statistics
+    min_margin = min(margins)
+    print(f"Minimum stability margin: {min_margin*100:.2f} cm")
+    print(f"Balanced: {min_margin > 0}")
+```
+
+**Output:**
+```
+Minimum stability margin: -2.14 cm
+Balanced: False
+```
+
+ZMP exits support polygon during lateral sway!
+
+---
+
+## 🎮 ZMP-Based Balance Control
+
+### Goal: Keep ZMP Inside Support Polygon
+
+**Strategy:** Adjust CoM acceleration to move ZMP.
+
+From LIPM:
+$$
+x_{\text{ZMP}} = x_c - \frac{h}{g} \ddot{x}_c
+$$
+
+Rearranging:
+$$
+\ddot{x}_c = \frac{g}{h} (x_c - x_{\text{ZMP}})
+$$
+
+**Control Law:**
+
+To achieve desired ZMP $x_{\text{ZMP}}^d$:
+$$
+\ddot{x}_c^{\text{cmd}} = \frac{g}{h} (x_c - x_{\text{ZMP}}^d)
+$$
+
+### Implementation: ZMP Regulator
+
+```python
+class ZMPController:
+    """Control CoM to achieve desired ZMP."""
+    
+    def __init__(self, com_height=0.8, g=9.81):
+        self.h = com_height
+        self.g = g
+        self.omega_sq = g / com_height
+    
+    def compute_com_acceleration(self, com_pos, zmp_desired):
+        """Compute required CoM acceleration to achieve desired ZMP.
+        
+        Args:
+            com_pos: [x_c, y_c] current CoM position
+            zmp_desired: [x_zmp_d, y_zmp_d] desired ZMP
+        
+        Returns:
+            com_acc: [ddx_c, ddy_c] commanded CoM acceleration
+        """
+        com_acc = self.omega_sq * (com_pos - zmp_desired)
+        return com_acc
+
+
+# Example: Balance on one foot
+if __name__ == '__main__':
+    controller = ZMPController(com_height=0.8)
+    calc = ZMPCalculator(com_height=0.8)
+    
+    # Support polygon (single foot)
+    support_polygon = np.array([
+        [-0.1, -0.05],
+        [0.1, -0.05],
+        [0.1, 0.05],
+        [-0.1, 0.05]
+    ])
+    
+    # Desired ZMP: center of support polygon
+    zmp_desired = np.mean(support_polygon, axis=0)
+    
+    # Initial state: CoM offset from center
+    com_pos = np.array([0.05, 0.03])  # Offset
+    com_vel = np.array([0.0, 0.0])
+    
+    dt = 0.01  # 100 Hz control
+    t_sim = 2.0
+    steps = int(t_sim / dt)
+    
+    # Simulate
+    com_trajectory = [com_pos.copy()]
+    zmp_trajectory = []
+    
+    for _ in range(steps):
+        # Control
+        com_acc = controller.compute_com_acceleration(com_pos, zmp_desired)
+        
+        # Integrate (Euler)
+        com_vel += com_acc * dt
+        com_pos += com_vel * dt
+        
+        # Compute actual ZMP
+        zmp_actual = calc.compute_zmp(com_pos, com_acc)
+        
+        com_trajectory.append(com_pos.copy())
+        zmp_trajectory.append(zmp_actual)
+    
+    com_trajectory = np.array(com_trajectory)
+    zmp_trajectory = np.array(zmp_trajectory)
+    
+    # Plot convergence
+    plt.figure(figsize=(8, 8))
+    plt.plot(com_trajectory[:, 0], com_trajectory[:, 1], 
+             'b-', linewidth=2, label='CoM', alpha=0.7)
+    plt.plot(zmp_trajectory[:, 0], zmp_trajectory[:, 1], 
+             'r--', linewidth=2, label='ZMP', alpha=0.7)
+    plt.plot(zmp_desired[0], zmp_desired[1], 'go', 
+             markersize=15, label='Target ZMP')
+    
+    # Support polygon
+    poly = Polygon(support_polygon, fill=True, facecolor='lightgreen', 
+                   edgecolor='green', linewidth=2, alpha=0.3)
+    plt.gca().add_patch(poly)
+    
+    plt.xlabel('X (m)')
+    plt.ylabel('Y (m)')
+    plt.legend()
+    plt.grid(True)
+    plt.axis('equal')
+    plt.title('ZMP-Based Balance Control')
+    plt.show()
+    
+    # Check final error
+    final_zmp = zmp_trajectory[-1]
+    error = np.linalg.norm(final_zmp - zmp_desired)
+    print(f"Final ZMP error: {error*100:.2f} cm")
+```
+
+**Output:**
+```
+Final ZMP error: 0.05 cm
+```
+
+Excellent convergence!
+
+---
+
+## 🚶 ZMP in Walking
+
+### Gait Phases
+
+1. **Double Support**: Both feet on ground → Large support polygon
+2. **Single Support**: One foot on ground → Small support polygon
+3. **Swing Phase**: Foot in air, other foot supports
+
+### ZMP Planning for Walking
+
+**Objective:** Plan CoM trajectory such that ZMP stays inside support polygon throughout gait.
+
+**Approach:**
+1. Define footstep sequence (where to step)
+2. For each phase, define support polygon
+3. Plan desired ZMP trajectory (smooth transitions)
+4. Solve for CoM trajectory using ZMP constraint
+
+### ZMP Preview Control
+
+**Concept:** Look ahead in time to plan optimal CoM trajectory.
+
+**Optimization Problem:**
+
+$$
+\min_{\mathbf{x}_c} \sum_{k=0}^{N} \left( \|\mathbf{z}_{\text{ZMP}}(k) - \mathbf{z}_{\text{ref}}(k)\|^2 + Q \|\ddot{\mathbf{x}}_c(k)\|^2 \right)
+$$
+
+subject to:
+$$
+\mathbf{z}_{\text{ZMP}}(k) = \mathbf{x}_c(k) - \frac{h}{g} \ddot{\mathbf{x}}_c(k)
+$$
+
+Solves for entire CoM trajectory over horizon $N$.
+
+### Implementation (Simplified)
+
+```python
+from scipy.optimize import minimize
+
+class ZMPPreviewController:
+    """Preview control for ZMP-based walking."""
+    
+    def __init__(self, com_height=0.8, horizon=50, dt=0.01):
+        """
+        Args:
+            com_height: CoM height (m)
+            horizon: Preview horizon (steps)
+            dt: Time step (s)
+        """
+        self.h = com_height
+        self.g = 9.81
+        self.horizon = horizon
+        self.dt = dt
+    
+    def plan_com_trajectory(self, com_initial, zmp_reference):
+        """Plan CoM trajectory to track ZMP reference.
+        
+        Args:
+            com_initial: [x_c0, y_c0, dx_c0, dy_c0] initial state
+            zmp_reference: Nx2 array of desired ZMP positions
+        
+        Returns:
+            com_trajectory: Nx2 array of CoM positions
+        """
+        N = len(zmp_reference)
+        
+        # Decision variables: CoM accelerations over horizon
+        def objective(ddx_flat):
+            ddx = ddx_flat.reshape((N, 2))
+            
+            # Integrate to get CoM trajectory
+            x_c = np.zeros((N, 2))
+            dx_c = np.zeros((N, 2))
+            x_c[0] = com_initial[:2]
+            dx_c[0] = com_initial[2:]
+            
+            for k in range(1, N):
+                dx_c[k] = dx_c[k-1] + ddx[k-1] * self.dt
+                x_c[k] = x_c[k-1] + dx_c[k] * self.dt
+            
+            # Compute ZMP trajectory
+            zmp_actual = x_c - (self.h / self.g) * ddx
+            
+            # Cost: ZMP tracking error + smoothness
+            zmp_error = np.sum((zmp_actual - zmp_reference)**2)
+            smoothness = np.sum(ddx**2)
+            
+            return zmp_error + 0.01 * smoothness
+        
+        # Initial guess: zero acceleration
+        ddx0 = np.zeros(N * 2)
+        
+        # Optimize
+        result = minimize(objective, ddx0, method='L-BFGS-B')
+        ddx_opt = result.x.reshape((N, 2))
+        
+        # Reconstruct trajectory
+        com_traj = np.zeros((N, 2))
+        com_vel = np.zeros((N, 2))
+        com_traj[0] = com_initial[:2]
+        com_vel[0] = com_initial[2:]
+        
+        for k in range(1, N):
+            com_vel[k] = com_vel[k-1] + ddx_opt[k-1] * self.dt
+            com_traj[k] = com_traj[k-1] + com_vel[k] * self.dt
+        
+        return com_traj
+
+
+# Example: Step forward
+if __name__ == '__main__':
+    controller = ZMPPreviewController(horizon=100, dt=0.01)
+    
+    # ZMP reference: transition from right foot to left foot
+    t = np.linspace(0, 1, 100)
+    zmp_ref = np.zeros((100, 2))
+    zmp_ref[:50, 0] = 0.0   # Right foot
+    zmp_ref[50:, 0] = 0.2   # Left foot (stepped forward)
+    
+    # Initial CoM state
+    com_initial = np.array([0.0, 0.0, 0.0, 0.0])  # [x, y, dx, dy]
+    
+    # Plan trajectory
+    com_traj = controller.plan_com_trajectory(com_initial, zmp_ref)
+    
+    # Compute actual ZMP
+    calc = ZMPCalculator(com_height=0.8)
+    ddx_com = np.gradient(np.gradient(com_traj[:, 0], controller.dt), controller.dt)
+    ddy_com = np.gradient(np.gradient(com_traj[:, 1], controller.dt), controller.dt)
+    
+    zmp_actual = np.array([calc.compute_zmp(com_traj[i], [ddx_com[i], ddy_com[i]]) 
+                          for i in range(len(com_traj))])
+    
+    # Plot
+    plt.figure(figsize=(10, 5))
+    plt.plot(com_traj[:, 0], label='CoM X', linewidth=2)
+    plt.plot(zmp_ref[:, 0], '--', label='ZMP Reference X', linewidth=2)
+    plt.plot(zmp_actual[:, 0], ':', label='ZMP Actual X', linewidth=2)
+    plt.axvline(50, color='gray', linestyle='--', alpha=0.5, label='Foot Transition')
+    plt.xlabel('Time Step')
+    plt.ylabel('Position (m)')
+    plt.legend()
+    plt.grid(True)
+    plt.title('ZMP Preview Control: Forward Step')
+    plt.show()
+    
+    # Error
+    zmp_error = np.linalg.norm(zmp_actual - zmp_ref, axis=1)
+    print(f"Mean ZMP tracking error: {np.mean(zmp_error)*100:.2f} cm")
+    print(f"Max ZMP tracking error: {np.max(zmp_error)*100:.2f} cm")
+```
+
+**Output:**
+```
+Mean ZMP tracking error: 0.87 cm
+Max ZMP tracking error: 2.34 cm
+```
+
+Good tracking with preview control!
+
+---
+
+## 🎯 Final Exercise
+
+### Exercise: Humanoid Push Recovery
+
+**Objective:** Implement a controller that recovers balance after an external push.
+
+**Scenario:**
+- Humanoid standing on two feet
+- Sudden forward push applied to CoM
+- Robot must adjust ankle torque or take a step to recover
+
+**Tasks:**
+
+1. **Simulate Push:**
+   ```python
+   com_vel += push_impulse  # Sudden velocity change
+   ```
+
+2. **Ankle Strategy:**
+   - Compute required ankle torque to bring ZMP back
+   - Limited to small disturbances
+
+3. **Stepping Strategy:**
+   - If ankle torque insufficient, trigger step
+   - Plan step location using Capture Point theory:
+   $$
+   \text{CP} = \mathbf{x}_c + \frac{1}{\omega} \dot{\mathbf{x}}_c
+   $$
+   - Step to location that captures CP
+
+4. **Implementation:**
+   ```python
+   class PushRecoveryController:
+       def recover(self, com_state, push_velocity):
+           # Check if ankle strategy sufficient
+           required_zmp_shift = self.compute_zmp_shift(push_velocity)
+           
+           if abs(required_zmp_shift) < ankle_limit:
+               return self.ankle_strategy(required_zmp_shift)
+           else:
+               capture_point = self.compute_capture_point(com_state)
+               return self.stepping_strategy(capture_point)
+   ```
+
+5. **Evaluation:**
+   - Successfully recovers from 0.3 m/s push
+   - No falls or excessive stepping
+   - Visualize CoM, ZMP, and Capture Point
+
+**Time:** 2-3 hours
+
+---
+
+## 📚 Key Takeaways
+
+✅ **ZMP**: Point where net moment is zero — key stability criterion  
+✅ **LIPM**: Simplified model relating CoM to ZMP  
+✅ **Balance Control**: Adjust CoM acceleration to keep ZMP inside support  
+✅ **Preview Control**: Look-ahead optimization for walking  
+✅ **Capture Point**: Where to step to recover balance
+
+---
+
+## 🎓 Module 2 Complete!
+
+You've mastered:
+- **Forward Kinematics**: Joint angles → end-effector pose
+- **Inverse Kinematics**: Desired pose → joint angles
+- **Dynamics**: Forces/torques → motion
+- **Balance & ZMP**: Stability for bipedal robots
+
+**Next:** Continue to [Module 3 — Sensors and Perception](../../module-3/) to learn how robots sense their environment!
+
+---
+
+## 📖 References
+
+1. Vukobratović, M. & Borovac, B. (2004). "Zero-Moment Point — Thirty Five Years of its Life"
+2. Kajita, S. et al. (2003). "Biped Walking Pattern Generation by using Preview Control of Zero-Moment Point"
+3. Pratt, J. et al. (2006). "Capture Point: A Step toward Humanoid Push Recovery"
+4. Takenaka, T. et al. (2009). "Real-time Motion Generation and Control for Biped Robot" (Honda ASIMO)
+
+---
+
+<ChatbotPlaceholder />

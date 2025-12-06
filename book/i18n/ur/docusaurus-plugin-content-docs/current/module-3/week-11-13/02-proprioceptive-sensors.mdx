@@ -1,0 +1,579 @@
+---
+title: "3.1.2 — Proprioceptive Sensors"
+sidebar_label: "3.1.2 — Proprioceptive Sensors"
+sidebar_position: 2
+description: "Encoders, IMUs, force/torque sensors for internal state estimation"
+module: 3
+week: 11
+section: 2
+tags: [sensors, encoders, imu, force-sensors, proprioception, state-estimation]
+difficulty: intermediate
+estimated_time: "3-4 hours"
+---
+
+:::info ترجمہ زیر التواء
+یہ صفحہ فی الحال انگریزی سے اردو میں ترجمہ کیا جا رہا ہے۔ مکمل مواد کے لیے براہ کرم انگریزی ورژن دیکھیں۔
+:::
+
+
+# 3.1.2 — Proprioceptive Sensors
+
+<DifficultyBadge level="intermediate" />
+
+> **Summary**: Learn internal sensing for robots — encoders for joint positions, IMUs for orientation, and force/torque sensors for contact forces.
+
+## 🎯 Learning Objectives
+
+- Understand encoder types and resolution
+- Implement IMU sensor fusion (accelerometer + gyroscope)
+- Process force/torque sensor data
+- Build complete state estimation pipeline
+- Handle sensor noise and calibration
+
+---
+
+## 📖 Theory: Internal Sensing
+
+### Proprioception in Robotics
+
+**What is Proprioception?**
+- Sensing internal state (joints, orientation, forces)
+- Analogous to human proprioception (body awareness)
+- Critical for control and balance
+
+**Key Sensors:**
+1. **Encoders**: Joint angles and velocities
+2. **IMUs**: Orientation and angular velocity
+3. **Force/Torque**: Contact forces and torques
+
+---
+
+## 🎯 Part 1: Encoders
+
+### Encoder Types
+
+| Type | Resolution | Cost | Absolute? | Use Case |
+|------|------------|------|-----------|----------|
+| **Incremental** | 100-10,000 PPR | $ | No | Motor control |
+| **Absolute** | 12-20 bit | $$ | Yes | Joint position |
+| **Magnetic** | 12-14 bit | $ | Yes | Compact joints |
+| **Optical** | 16-20 bit | $$$ | Yes | High precision |
+
+**Resolution Calculation:**
+$$
+\theta_{\text{resolution}} = \frac{360°}{N \cdot \text{CPR}}
+$$
+
+Where:
+- $N$: Gear ratio
+- CPR: Counts per revolution
+
+**Example:** Encoder with 2048 CPR, 100:1 gearbox:
+$$
+\theta_{\text{resolution}} = \frac{360°}{100 \cdot 2048} = 0.00176° = 0.00003 \text{ rad}
+$$
+
+### Implementation: Encoder Processing
+
+```python
+import numpy as np
+from collections import deque
+
+class EncoderProcessor:
+    """Process encoder data for joint state estimation."""
+    
+    def __init__(self, cpr=2048, gear_ratio=100.0, dt=0.001):
+        """
+        Initialize encoder processor.
+        
+        Args:
+            cpr: Counts per revolution
+            gear_ratio: Gearbox reduction ratio
+            dt: Sampling period (seconds)
+        """
+        self.cpr = cpr
+        self.gear_ratio = gear_ratio
+        self.dt = dt
+        
+        # Resolution (radians)
+        self.resolution = (2 * np.pi) / (cpr * gear_ratio)
+        
+        # State
+        self.position = 0.0  # radians
+        self.velocity = 0.0  # rad/s
+        self.prev_position = 0.0
+        
+        # Velocity filter (moving average)
+        self.velocity_buffer = deque(maxlen=10)
+    
+    def update(self, encoder_counts: int):
+        """
+        Update joint state from encoder counts.
+        
+        Args:
+            encoder_counts: Raw encoder count
+        """
+        # Convert counts to radians
+        self.position = encoder_counts * self.resolution
+        
+        # Compute velocity (finite difference)
+        raw_velocity = (self.position - self.prev_position) / self.dt
+        
+        # Filter velocity
+        self.velocity_buffer.append(raw_velocity)
+        self.velocity = np.mean(self.velocity_buffer)
+        
+        self.prev_position = self.position
+    
+    def get_state(self) -> dict:
+        """Get current joint state."""
+        return {
+            'position': self.position,
+            'velocity': self.velocity,
+            'resolution': self.resolution
+        }
+    
+    def calibrate_zero(self):
+        """Calibrate zero position."""
+        self.position = 0.0
+        self.prev_position = 0.0
+
+
+class MultiJointEncoder:
+    """Manage encoders for multiple joints."""
+    
+    def __init__(self, num_joints: int, cpr=2048, gear_ratios=None, dt=0.001):
+        self.num_joints = num_joints
+        
+        if gear_ratios is None:
+            gear_ratios = [100.0] * num_joints
+        
+        self.encoders = [
+            EncoderProcessor(cpr, gear_ratios[i], dt)
+            for i in range(num_joints)
+        ]
+    
+    def update(self, encoder_counts: np.ndarray):
+        """Update all joints."""
+        for i, counts in enumerate(encoder_counts):
+            self.encoders[i].update(counts)
+    
+    def get_positions(self) -> np.ndarray:
+        """Get all joint positions."""
+        return np.array([enc.position for enc in self.encoders])
+    
+    def get_velocities(self) -> np.ndarray:
+        """Get all joint velocities."""
+        return np.array([enc.velocity for enc in self.encoders])
+
+
+# Example usage
+if __name__ == '__main__':
+    # Single joint
+    encoder = EncoderProcessor(cpr=2048, gear_ratio=100.0, dt=0.001)
+    
+    # Simulate rotation
+    for t in np.linspace(0, 2*np.pi, 100):
+        # Simulate encoder counts (sinusoidal motion)
+        counts = int((t / (2*np.pi)) * 2048 * 100)
+        encoder.update(counts)
+        
+        state = encoder.get_state()
+        print(f"t={t:.2f}: pos={state['position']:.4f} rad, "
+              f"vel={state['velocity']:.4f} rad/s")
+```
+
+---
+
+## 🎯 Part 2: Inertial Measurement Units (IMUs)
+
+### IMU Components
+
+**6-DOF IMU:**
+- 3-axis accelerometer: Measures linear acceleration $\mathbf{a} = [a_x, a_y, a_z]$
+- 3-axis gyroscope: Measures angular velocity $\boldsymbol{\omega} = [\omega_x, \omega_y, \omega_z]$
+
+**9-DOF IMU:**
+- Adds 3-axis magnetometer for absolute heading
+
+**Challenges:**
+- Accelerometer: Noisy, includes gravity
+- Gyroscope: Drifts over time
+- Solution: **Sensor fusion** (combine both)
+
+### Complementary Filter
+
+**Idea:** Trust gyro for short term, accelerometer for long term.
+
+$$
+\theta_{\text{fused}} = \alpha \cdot (\theta_{\text{prev}} + \omega \cdot dt) + (1 - \alpha) \cdot \theta_{\text{accel}}
+$$
+
+Where:
+- $\alpha \approx 0.98$: Filter coefficient
+- $\omega \cdot dt$: Gyro-based angle change
+- $\theta_{\text{accel}}$: Accelerometer-based angle
+
+**Accelerometer Angle Estimation:**
+$$
+\theta_{\text{roll}} = \arctan2(a_y, a_z)
+$$
+$$
+\theta_{\text{pitch}} = \arctan2(-a_x, \sqrt{a_y^2 + a_z^2})
+$$
+
+### Implementation: IMU Sensor Fusion
+
+```python
+import numpy as np
+
+class IMU:
+    """IMU sensor fusion with complementary filter."""
+    
+    def __init__(self, dt=0.01, alpha=0.98):
+        """
+        Initialize IMU.
+        
+        Args:
+            dt: Sampling period (seconds)
+            alpha: Complementary filter coefficient
+        """
+        self.dt = dt
+        self.alpha = alpha
+        
+        # State: [roll, pitch, yaw] in radians
+        self.orientation = np.zeros(3)
+        
+        # Bias estimation
+        self.gyro_bias = np.zeros(3)
+        self.calibration_samples = 0
+        self.calibrating = True
+    
+    def update(self, accel: np.ndarray, gyro: np.ndarray):
+        """
+        Update orientation estimate.
+        
+        Args:
+            accel: Accelerometer reading [ax, ay, az] (m/s²)
+            gyro: Gyroscope reading [ωx, ωy, ωz] (rad/s)
+        """
+        # Calibrate gyro bias (first 100 samples)
+        if self.calibrating:
+            self.gyro_bias += gyro
+            self.calibration_samples += 1
+            if self.calibration_samples >= 100:
+                self.gyro_bias /= 100
+                self.calibrating = False
+                print(f"Gyro calibrated: bias = {self.gyro_bias}")
+            return
+        
+        # Remove bias
+        gyro = gyro - self.gyro_bias
+        
+        # Accelerometer-based angles (roll, pitch)
+        ax, ay, az = accel
+        roll_accel = np.arctan2(ay, az)
+        pitch_accel = np.arctan2(-ax, np.sqrt(ay**2 + az**2))
+        
+        # Gyroscope integration
+        roll_gyro = self.orientation[0] + gyro[0] * self.dt
+        pitch_gyro = self.orientation[1] + gyro[1] * self.dt
+        yaw_gyro = self.orientation[2] + gyro[2] * self.dt
+        
+        # Complementary filter (roll, pitch)
+        self.orientation[0] = self.alpha * roll_gyro + (1 - self.alpha) * roll_accel
+        self.orientation[1] = self.alpha * pitch_gyro + (1 - self.alpha) * pitch_accel
+        
+        # Yaw (only gyro, no absolute reference)
+        self.orientation[2] = yaw_gyro
+    
+    def get_orientation(self) -> np.ndarray:
+        """Get orientation [roll, pitch, yaw] in radians."""
+        return self.orientation
+    
+    def get_orientation_deg(self) -> np.ndarray:
+        """Get orientation in degrees."""
+        return np.degrees(self.orientation)
+    
+    def get_rotation_matrix(self) -> np.ndarray:
+        """Get rotation matrix from body to world frame."""
+        roll, pitch, yaw = self.orientation
+        
+        # ZYX Euler angles to rotation matrix
+        R_x = np.array([
+            [1, 0, 0],
+            [0, np.cos(roll), -np.sin(roll)],
+            [0, np.sin(roll), np.cos(roll)]
+        ])
+        
+        R_y = np.array([
+            [np.cos(pitch), 0, np.sin(pitch)],
+            [0, 1, 0],
+            [-np.sin(pitch), 0, np.cos(pitch)]
+        ])
+        
+        R_z = np.array([
+            [np.cos(yaw), -np.sin(yaw), 0],
+            [np.sin(yaw), np.cos(yaw), 0],
+            [0, 0, 1]
+        ])
+        
+        return R_z @ R_y @ R_x
+
+
+# Example usage
+if __name__ == '__main__':
+    imu = IMU(dt=0.01, alpha=0.98)
+    
+    # Simulate IMU data (robot tilting forward)
+    for t in np.linspace(0, 5, 500):
+        # Simulate pitch rotation
+        pitch_angle = 0.2 * np.sin(t)  # ±0.2 rad oscillation
+        
+        # Simulated accelerometer (includes gravity)
+        g = 9.81
+        accel = np.array([
+            -g * np.sin(pitch_angle),
+            0,
+            g * np.cos(pitch_angle)
+        ])
+        
+        # Simulated gyroscope
+        gyro = np.array([
+            0,
+            0.2 * np.cos(t),  # Angular velocity
+            0
+        ])
+        
+        # Add noise
+        accel += np.random.normal(0, 0.1, 3)
+        gyro += np.random.normal(0, 0.01, 3)
+        
+        imu.update(accel, gyro)
+        
+        if int(t * 10) % 10 == 0:
+            orientation = imu.get_orientation_deg()
+            print(f"t={t:.1f}s: roll={orientation[0]:.1f}°, "
+                  f"pitch={orientation[1]:.1f}°, yaw={orientation[2]:.1f}°")
+```
+
+---
+
+## 🎯 Part 3: Force/Torque Sensors
+
+### Sensor Types
+
+**Strain Gauge-Based:**
+- Wheatstone bridge circuit
+- Measures deformation → force
+- 6-DOF: $[F_x, F_y, F_z, \tau_x, \tau_y, \tau_z]$
+
+**Typical Ranges:**
+- Force: ±250 N to ±2000 N
+- Torque: ±25 Nm to ±200 Nm
+- Resolution: 12-16 bit (0.01-0.1% full scale)
+
+### Implementation: Force/Torque Processing
+
+```python
+class ForceTorqueSensor:
+    """6-DOF force/torque sensor processing."""
+    
+    def __init__(self, force_range=500.0, torque_range=50.0, adc_bits=16):
+        """
+        Initialize FT sensor.
+        
+        Args:
+            force_range: Maximum force (N)
+            torque_range: Maximum torque (Nm)
+            adc_bits: ADC resolution
+        """
+        self.force_range = force_range
+        self.torque_range = torque_range
+        self.adc_max = 2**adc_bits - 1
+        
+        # Calibration
+        self.force_offset = np.zeros(3)
+        self.torque_offset = np.zeros(3)
+        self.calibrated = False
+        
+        # Filtered readings
+        self.force = np.zeros(3)
+        self.torque = np.zeros(3)
+    
+    def calibrate(self, num_samples=100):
+        """Calibrate sensor (remove gravity/mounting bias)."""
+        force_samples = []
+        torque_samples = []
+        
+        print("Calibrating FT sensor (keep unloaded)...")
+        for i in range(num_samples):
+            # Simulate raw ADC readings
+            raw_force = np.random.normal(0, 10, 3)
+            raw_torque = np.random.normal(0, 1, 3)
+            
+            force_samples.append(raw_force)
+            torque_samples.append(raw_torque)
+        
+        self.force_offset = np.mean(force_samples, axis=0)
+        self.torque_offset = np.mean(torque_samples, axis=0)
+        self.calibrated = True
+        
+        print(f"Calibration complete. Force offset: {self.force_offset}")
+    
+    def update(self, raw_force_adc: np.ndarray, raw_torque_adc: np.ndarray):
+        """
+        Update force/torque readings from ADC values.
+        
+        Args:
+            raw_force_adc: Raw ADC values for force (3D)
+            raw_torque_adc: Raw ADC values for torque (3D)
+        """
+        # Convert ADC to physical units
+        force_raw = (raw_force_adc / self.adc_max) * self.force_range
+        torque_raw = (raw_torque_adc / self.adc_max) * self.torque_range
+        
+        # Remove calibration offset
+        if self.calibrated:
+            force_raw -= self.force_offset
+            torque_raw -= self.torque_offset
+        
+        # Low-pass filter (simple exponential)
+        alpha = 0.8
+        self.force = alpha * force_raw + (1 - alpha) * self.force
+        self.torque = alpha * torque_raw + (1 - alpha) * self.torque
+    
+    def get_wrench(self) -> dict:
+        """Get force and torque (wrench)."""
+        return {
+            'force': self.force.copy(),
+            'torque': self.torque.copy(),
+            'force_magnitude': np.linalg.norm(self.force),
+            'torque_magnitude': np.linalg.norm(self.torque)
+        }
+    
+    def detect_contact(self, force_threshold=10.0) -> bool:
+        """Detect contact based on force magnitude."""
+        return np.linalg.norm(self.force) > force_threshold
+
+
+# Example: Foot contact detection
+class FootContactEstimator:
+    """Estimate foot contact state from force sensors."""
+    
+    def __init__(self):
+        self.left_ft = ForceTorqueSensor(force_range=1000.0, torque_range=100.0)
+        self.right_ft = ForceTorqueSensor(force_range=1000.0, torque_range=100.0)
+        
+        # Calibrate
+        self.left_ft.calibrate()
+        self.right_ft.calibrate()
+        
+        # Contact thresholds
+        self.contact_threshold = 50.0  # Newtons
+    
+    def update(self, left_force_adc, left_torque_adc, right_force_adc, right_torque_adc):
+        """Update both foot sensors."""
+        self.left_ft.update(left_force_adc, left_torque_adc)
+        self.right_ft.update(right_force_adc, right_torque_adc)
+    
+    def get_contact_state(self) -> dict:
+        """Get contact state for both feet."""
+        left_contact = self.left_ft.detect_contact(self.contact_threshold)
+        right_contact = self.right_ft.detect_contact(self.contact_threshold)
+        
+        # Determine support phase
+        if left_contact and right_contact:
+            phase = 'double_support'
+        elif left_contact:
+            phase = 'left_support'
+        elif right_contact:
+            phase = 'right_support'
+        else:
+            phase = 'flight'  # Both feet off ground (running)
+        
+        return {
+            'left_contact': left_contact,
+            'right_contact': right_contact,
+            'phase': phase,
+            'left_force': self.left_ft.force,
+            'right_force': self.right_ft.force
+        }
+
+
+# Example usage
+if __name__ == '__main__':
+    estimator = FootContactEstimator()
+    
+    # Simulate walking gait
+    for t in np.linspace(0, 2*np.pi, 100):
+        # Simulate alternating foot contact
+        left_weight = max(0, np.sin(t)) * 500  # 0-500N
+        right_weight = max(0, -np.sin(t)) * 500
+        
+        # Simulate ADC readings
+        left_adc = np.array([0, 0, left_weight / 1000 * 65535])
+        right_adc = np.array([0, 0, right_weight / 1000 * 65535])
+        
+        estimator.update(left_adc, np.zeros(3), right_adc, np.zeros(3))
+        
+        state = estimator.get_contact_state()
+        
+        if int(t * 10) % 10 == 0:
+            print(f"t={t:.2f}: phase={state['phase']:15s}, "
+                  f"L={state['left_force'][2]:.1f}N, "
+                  f"R={state['right_force'][2]:.1f}N")
+```
+
+---
+
+## 💻 Hands-On Exercise
+
+### 🎯 Exercise: Complete State Estimator
+
+**Difficulty**: ⭐⭐ Intermediate  
+**Time**: 90 minutes
+
+**Objective**: Build a state estimator combining encoders, IMU, and force sensors.
+
+**Tasks**:
+1. Fuse encoder and IMU data for full robot state
+2. Detect ground contact from force sensors
+3. Estimate center of mass position
+4. Validate with simulated robot
+
+**Success Criteria**:
+- ✅ Accurate joint positions (< 0.1° error)
+- ✅ Stable orientation estimate (no drift)
+- ✅ Reliable contact detection
+- ✅ Real-time performance (>500 Hz)
+
+---
+
+## 🧠 Key Takeaways
+
+1. **Encoders** provide precise joint positions (0.001° resolution)
+2. **IMUs** require sensor fusion to combat drift and noise
+3. **Complementary filter** combines gyro (short-term) and accel (long-term)
+4. **Force sensors** enable contact detection and balance control
+5. **Calibration** is essential for all proprioceptive sensors
+
+---
+
+## 📚 Further Reading
+
+- **Paper**: "Drift-Free Orientation Estimation Using Complementary Filtering" (Mahony et al., 2008)
+- **Tutorial**: [Kalman Filter Explained](https://www.kalmanfilter.net/)
+- **Datasheet**: MPU-6050 IMU (Invensense)
+
+---
+
+## ➡️ Next Section
+
+**[3.1.3 — Actuator Technologies →](./03-actuator-technologies)**
+
+Learn about motors, hydraulics, and series elastic actuators.
+
+---
+
+<ChatbotPlaceholder />
