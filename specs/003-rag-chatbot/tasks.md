@@ -47,17 +47,17 @@ This task list organizes implementation work by user story to enable independent
 
 ### Backend Setup
 
-- [ ] T001 Create backend directory structure: `rag-chatbot-backend/` with subdirs: `app/`, `scripts/`, `tests/`, `migrations/`
-- [ ] T002 Initialize Python virtual environment and install dependencies: `fastapi==0.109+`, `uvicorn`, `asyncpg==0.29+`, `qdrant-client==1.7+`, `google-genai==1.33+`, `structlog==24.1+`, `pydantic-settings`, `python-dotenv`
-- [ ] T003 [P] Create `.env.example` with all 12 required environment variables (NEON_CONNECTION_STRING, QDRANT_URL, QDRANT_API_KEY, GEMINI_API_KEY, etc.)
-- [ ] T004 [P] Create `requirements.txt` with pinned dependency versions from plan.md
-- [ ] T005 [P] Setup Dockerfile for Railway/Render deployment in `rag-chatbot-backend/Dockerfile`
+- [x] T001 Create backend directory structure: `rag-chatbot-backend/` with subdirs: `app/`, `scripts/`, `tests/`, `migrations/`
+- [x] T002 Initialize Python virtual environment and install dependencies: `fastapi==0.109+`, `uvicorn`, `asyncpg==0.29+`, `qdrant-client==1.7+`, `google-genai==1.33+`, `structlog==24.1+`, `pydantic-settings`, `python-dotenv`
+- [x] T003 [P] Create `.env.example` with all 12 required environment variables (NEON_CONNECTION_STRING, QDRANT_URL, QDRANT_API_KEY, GEMINI_API_KEY, etc.)
+- [x] T004 [P] Create `requirements.txt` with pinned dependency versions from plan.md
+- [x] T005 [P] Setup Dockerfile for Railway/Render deployment in `rag-chatbot-backend/Dockerfile`
 
 ### Frontend Setup
 
-- [ ] T006 Create React widget directory structure: `book/src/components/ChatWidget/` with subdirs: `components/`, `hooks/`, `utils/`, `types/`
-- [ ] T007 Install frontend dependencies: `react-markdown`, `eventsource` polyfill, testing libraries
-- [ ] T008 [P] Create TypeScript types for chat messages, sessions, API responses in `book/src/components/ChatWidget/types/index.ts`
+- [x] T006 Create React widget directory structure: `book/src/components/ChatWidget/` with subdirs: `components/`, `hooks/`, `utils/`, `types/`
+- [x] T007 Install frontend dependencies: `react-markdown`, `eventsource` polyfill, testing libraries
+- [x] T008 [P] Create TypeScript types for chat messages, sessions, API responses in `book/src/components/ChatWidget/types/index.ts`
 
 ### Infrastructure Setup
 
