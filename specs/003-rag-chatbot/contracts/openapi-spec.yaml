@@ -1,0 +1,774 @@
+openapi: 3.1.0
+info:
+  title: RAG Chatbot API
+  version: 1.0.0
+  description: |
+    Physical AI Textbook RAG Chatbot API - provides semantic search over textbook content
+    with streaming responses, chat history, authentication, and feedback mechanisms.
+    
+    **Features:**
+    - Vector-based semantic search (Qdrant + Gemini embeddings)
+    - Streaming chat completions (Server-Sent Events)
+    - Guest and authenticated user support (Better Auth)
+    - Multi-language content (English/Urdu)
+    - Chat history with 90-day retention for anonymous users
+    - User feedback collection (thumbs up/down)
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.physicalai-textbook.com
+    description: Production server
+
+tags:
+  - name: chat
+    description: Chat and query operations
+  - name: admin
+    description: Administrative endpoints (ingestion, health)
+
+paths:
+  /api/chat/query:
+    post:
+      summary: Submit chat query
+      description: |
+        Submit a user query and receive a streaming response with citations.
+        Uses vector search to find relevant textbook chunks, then generates
+        a response using Gemini with streaming enabled.
+        
+        **Response Format:** Server-Sent Events (SSE)
+        - Each chunk sent as `data: {"chunk": "text"}` line
+        - Final message includes citations as `data: {"citations": ["2.1.3"]}`
+        - Connection closed with `data: [DONE]`
+      tags:
+        - chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatQueryRequest'
+            examples:
+              english_query:
+                summary: English query
+                value:
+                  query: "What is forward kinematics?"
+                  language: "en"
+                  session_id: "550e8400-e29b-41d4-a716-446655440000"
+              urdu_query:
+                summary: Urdu query
+                value:
+                  query: "فارورڈ کائنیمیٹکس کیا ہے؟"
+                  language: "ur"
+                  session_id: "550e8400-e29b-41d4-a716-446655440001"
+      responses:
+        '200':
+          description: Streaming response with citations
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                format: server-sent-events
+              examples:
+                streaming_response:
+                  summary: SSE stream example
+                  value: |
+                    data: {"chunk": "Forward kinematics"}
+                    
+                    data: {"chunk": " is the process"}
+                    
+                    data: {"chunk": " of computing..."}
+                    
+                    data: {"citations": ["1.1.2", "1.2.1"]}
+                    
+                    data: [DONE]
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/chat/query-selection:
+    post:
+      summary: Query with selected text context
+      description: |
+        Submit a query about user-selected text from the textbook.
+        Includes the selected text as additional context for more precise answers.
+        
+        **Use Case:** User highlights "Denavit-Hartenberg" and asks "explain this"
+      tags:
+        - chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuerySelectionRequest'
+            examples:
+              selection_query:
+                summary: Query with text selection
+                value:
+                  query: "Can you explain this concept in simpler terms?"
+                  selected_text: "The Denavit-Hartenberg convention is a systematic method..."
+                  language: "en"
+                  session_id: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Streaming response with context-aware answer
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                format: server-sent-events
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/chat/history:
+    get:
+      summary: Retrieve chat history
+      description: |
+        Get paginated chat history for a session. Returns messages in reverse
+        chronological order (most recent first).
+        
+        **Authentication:**
+        - Anonymous: Requires session_token query parameter
+        - Authenticated: Uses session cookie, optional session_id filter
+      tags:
+        - chat
+      parameters:
+        - name: session_id
+          in: query
+          description: Session UUID (required for anonymous, optional for authenticated)
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: session_token
+          in: query
+          description: Hashed session token for anonymous users
+          schema:
+            type: string
+          example: "a3f7b8c2..."
+        - name: limit
+          in: query
+          description: Number of messages to return (default 20, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          description: Pagination offset (default 0)
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: Chat history retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatHistoryResponse'
+              examples:
+                history_example:
+                  summary: Sample history
+                  value:
+                    session_id: "550e8400-e29b-41d4-a716-446655440000"
+                    messages:
+                      - id: "msg-001"
+                        role: "user"
+                        content: "What is forward kinematics?"
+                        created_at: "2025-01-15T10:30:00Z"
+                      - id: "msg-002"
+                        role: "assistant"
+                        content: "Forward kinematics is..."
+                        metadata:
+                          citations: ["1.1.2", "1.2.1"]
+                          similarity_scores: [0.89, 0.87]
+                        created_at: "2025-01-15T10:30:02Z"
+                    total_count: 2
+                    has_more: false
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/SessionNotFound'
+
+  /api/chat/migrate:
+    post:
+      summary: Migrate anonymous session to authenticated user
+      description: |
+        Transfer chat history from localStorage (anonymous) to database after
+        user signs in. Associates anonymous session with authenticated user account.
+        
+        **Process:**
+        1. User authenticates via Better Auth
+        2. Frontend sends local messages + session_token
+        3. Backend updates session.user_id, creates messages
+        4. Frontend clears localStorage
+      tags:
+        - chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MigrateSessionRequest'
+            examples:
+              migration_example:
+                summary: Migrate 3 messages
+                value:
+                  session_token: "a3f7b8c2..."
+                  messages:
+                    - role: "user"
+                      content: "What is inverse kinematics?"
+                      created_at: "2025-01-15T09:00:00Z"
+                    - role: "assistant"
+                      content: "Inverse kinematics is..."
+                      metadata:
+                        citations: ["1.3.1"]
+                      created_at: "2025-01-15T09:00:02Z"
+                    - role: "user"
+                      content: "Can you give an example?"
+                      created_at: "2025-01-15T09:01:00Z"
+      responses:
+        '200':
+          description: Session migrated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MigrateSessionResponse'
+              examples:
+                success_response:
+                  summary: Migration success
+                  value:
+                    session_id: "550e8400-e29b-41d4-a716-446655440000"
+                    messages_migrated: 3
+                    message: "Session migrated successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/chat/feedback:
+    post:
+      summary: Submit feedback on assistant response
+      description: |
+        Submit thumbs up/down feedback for an assistant message.
+        Optional feedback text can provide additional context.
+        
+        **Analytics:** Used to calculate positive feedback rate (SC-007: target 75%)
+      tags:
+        - chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+            examples:
+              positive_feedback:
+                summary: Thumbs up
+                value:
+                  message_id: "msg-002"
+                  rating: 1
+              negative_with_comment:
+                summary: Thumbs down with comment
+                value:
+                  message_id: "msg-004"
+                  rating: -1
+                  feedback_text: "The explanation was too technical"
+      responses:
+        '200':
+          description: Feedback recorded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+              examples:
+                success_response:
+                  summary: Feedback success
+                  value:
+                    feedback_id: "fb-001"
+                    message: "Thank you for your feedback"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_found:
+                  summary: Message not found
+                  value:
+                    error: "Message not found"
+                    message_id: "invalid-id"
+
+  /api/admin/ingest:
+    post:
+      summary: Trigger content ingestion
+      description: |
+        Re-embed and ingest textbook content into Qdrant vector store.
+        Used when content is updated or initially deployed.
+        
+        **Process:**
+        1. Parse MDX files (English/Urdu)
+        2. Split into 500-token chunks (50-token overlap)
+        3. Generate embeddings (Gemini text-embedding-004)
+        4. Upsert into Qdrant collections
+        
+        **Authentication:** Requires admin token (API key)
+      tags:
+        - admin
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestRequest'
+            examples:
+              ingest_all:
+                summary: Ingest all languages
+                value:
+                  languages: ["en", "ur"]
+                  force_reindex: false
+              force_english:
+                summary: Force re-index English
+                value:
+                  languages: ["en"]
+                  force_reindex: true
+      responses:
+        '200':
+          description: Ingestion completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestResponse'
+              examples:
+                success_response:
+                  summary: Ingestion success
+                  value:
+                    status: "completed"
+                    languages_processed: ["en", "ur"]
+                    vectors_upserted: 800
+                    duration_seconds: 45.3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/health:
+    get:
+      summary: Health check endpoint
+      description: |
+        Check API and dependency health status.
+        Returns 200 if all systems operational, 503 if any dependency is down.
+        
+        **Monitored Services:**
+        - Postgres (Neon)
+        - Qdrant Cloud
+        - Gemini API
+      tags:
+        - admin
+      responses:
+        '200':
+          description: All systems operational
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                healthy:
+                  summary: Healthy status
+                  value:
+                    status: "healthy"
+                    timestamp: "2025-01-15T10:30:00Z"
+                    dependencies:
+                      postgres: "ok"
+                      qdrant: "ok"
+                      gemini: "ok"
+                    version: "1.0.0"
+        '503':
+          description: Service degraded or unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                degraded:
+                  summary: Degraded status
+                  value:
+                    status: "degraded"
+                    timestamp: "2025-01-15T10:30:00Z"
+                    dependencies:
+                      postgres: "ok"
+                      qdrant: "error"
+                      gemini: "ok"
+                    errors:
+                      qdrant: "Connection timeout"
+                    version: "1.0.0"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Admin API key for protected endpoints
+
+  schemas:
+    ChatQueryRequest:
+      type: object
+      required:
+        - query
+        - language
+      properties:
+        query:
+          type: string
+          description: User's question about the textbook
+          minLength: 1
+          maxLength: 1000
+          example: "What is forward kinematics?"
+        language:
+          type: string
+          description: Language code for content filtering
+          enum: ["en", "ur"]
+          example: "en"
+        session_id:
+          type: string
+          format: uuid
+          description: Session UUID for history tracking (optional, creates new if omitted)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        session_token:
+          type: string
+          description: Hashed token for anonymous session (required if session_id is new)
+          example: "a3f7b8c2..."
+
+    QuerySelectionRequest:
+      allOf:
+        - $ref: '#/components/schemas/ChatQueryRequest'
+        - type: object
+          required:
+            - selected_text
+          properties:
+            selected_text:
+              type: string
+              description: Text selected by user from textbook
+              minLength: 1
+              maxLength: 5000
+              example: "The Denavit-Hartenberg convention is a systematic method..."
+
+    ChatHistoryResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+        total_count:
+          type: integer
+          description: Total messages in session
+          example: 42
+        has_more:
+          type: boolean
+          description: Whether more messages exist (for pagination)
+          example: true
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "msg-001"
+        role:
+          type: string
+          enum: ["user", "assistant"]
+          example: "user"
+        content:
+          type: string
+          example: "What is forward kinematics?"
+        metadata:
+          type: object
+          description: Additional context (citations, scores, timing)
+          properties:
+            citations:
+              type: array
+              items:
+                type: string
+              example: ["1.1.2", "1.2.1"]
+            similarity_scores:
+              type: array
+              items:
+                type: number
+                format: float
+              example: [0.89, 0.87]
+            response_time_ms:
+              type: integer
+              example: 1234
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-01-15T10:30:00Z"
+
+    MigrateSessionRequest:
+      type: object
+      required:
+        - session_token
+        - messages
+      properties:
+        session_token:
+          type: string
+          description: Anonymous session token to migrate
+          example: "a3f7b8c2..."
+        messages:
+          type: array
+          description: Chat messages from localStorage
+          items:
+            type: object
+            required:
+              - role
+              - content
+              - created_at
+            properties:
+              role:
+                type: string
+                enum: ["user", "assistant"]
+              content:
+                type: string
+              metadata:
+                type: object
+              created_at:
+                type: string
+                format: date-time
+
+    MigrateSessionResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        messages_migrated:
+          type: integer
+          example: 3
+        message:
+          type: string
+          example: "Session migrated successfully"
+
+    FeedbackRequest:
+      type: object
+      required:
+        - message_id
+        - rating
+      properties:
+        message_id:
+          type: string
+          format: uuid
+          description: Assistant message ID to rate
+          example: "msg-002"
+        rating:
+          type: integer
+          description: Feedback rating (1 = positive, -1 = negative)
+          enum: [1, -1]
+          example: 1
+        feedback_text:
+          type: string
+          description: Optional feedback comment
+          maxLength: 500
+          example: "Very helpful explanation!"
+
+    FeedbackResponse:
+      type: object
+      properties:
+        feedback_id:
+          type: string
+          format: uuid
+          example: "fb-001"
+        message:
+          type: string
+          example: "Thank you for your feedback"
+
+    IngestRequest:
+      type: object
+      required:
+        - languages
+      properties:
+        languages:
+          type: array
+          description: Languages to ingest
+          items:
+            type: string
+            enum: ["en", "ur"]
+          example: ["en", "ur"]
+        force_reindex:
+          type: boolean
+          description: Force re-indexing even if collection exists
+          default: false
+
+    IngestResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["completed", "partial", "failed"]
+          example: "completed"
+        languages_processed:
+          type: array
+          items:
+            type: string
+          example: ["en", "ur"]
+        vectors_upserted:
+          type: integer
+          description: Total vectors added to Qdrant
+          example: 800
+        duration_seconds:
+          type: number
+          format: float
+          example: 45.3
+        errors:
+          type: array
+          description: Errors encountered (if any)
+          items:
+            type: object
+            properties:
+              language:
+                type: string
+              error:
+                type: string
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["healthy", "degraded", "unhealthy"]
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-15T10:30:00Z"
+        dependencies:
+          type: object
+          properties:
+            postgres:
+              type: string
+              enum: ["ok", "error"]
+            qdrant:
+              type: string
+              enum: ["ok", "error"]
+            gemini:
+              type: string
+              enum: ["ok", "error"]
+        errors:
+          type: object
+          description: Error details for failed dependencies
+          additionalProperties:
+            type: string
+        version:
+          type: string
+          example: "1.0.0"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type or code
+          example: "validation_error"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Query parameter 'language' is required"
+        details:
+          type: object
+          description: Additional error context
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            validation_error:
+              summary: Validation error
+              value:
+                error: "validation_error"
+                message: "Query parameter 'language' is required"
+                details:
+                  field: "language"
+                  constraint: "required"
+
+    Unauthorized:
+      description: Authentication required or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_auth:
+              summary: Missing authentication
+              value:
+                error: "unauthorized"
+                message: "Authentication required"
+
+    SessionNotFound:
+      description: Session does not exist or access denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            not_found:
+              summary: Session not found
+              value:
+                error: "not_found"
+                message: "Session not found or access denied"
+                details:
+                  session_id: "invalid-uuid"
+
+    RateLimitExceeded:
+      description: Too many requests
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            rate_limit:
+              summary: Rate limit exceeded
+              value:
+                error: "rate_limit_exceeded"
+                message: "Too many requests. Please try again later."
+                details:
+                  retry_after_seconds: 60
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            server_error:
+              summary: Server error
+              value:
+                error: "internal_error"
+                message: "An unexpected error occurred"
+                details:
+                  request_id: "req-abc123"
