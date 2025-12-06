@@ -1,0 +1,650 @@
+---
+title: "3.1.3 — Actuator Technologies"
+sidebar_label: "3.1.3 — Actuator Technologies"
+sidebar_position: 3
+description: "Electric motors, hydraulics, pneumatics, and series elastic actuators for humanoid robots"
+module: 3
+week: 11
+section: 3
+tags: [actuators, motors, hydraulics, pneumatics, sea, torque-control]
+difficulty: intermediate
+estimated_time: "3-4 hours"
+---
+
+# 3.1.3 — Actuator Technologies
+
+> **Summary**: Explore actuator technologies that power humanoid robots — from electric motors to hydraulics and compliant actuators.
+
+## 🎯 Learning Objectives
+
+- Compare actuator technologies (electric, hydraulic, pneumatic)
+- Understand motor control and torque generation
+- Implement series elastic actuators (SEA)
+- Design transmission systems and gear ratios
+- Select actuators for specific robot applications
+
+---
+
+## 📖 Theory: Actuator Comparison
+
+### Technology Overview
+
+| Technology | Power Density | Bandwidth | Compliance | Cost | Use Case |
+|------------|--------------|-----------|------------|------|----------|
+| **Electric (DC)** | Medium | High | Low | $ | General robotics |
+| **Electric (BLDC)** | High | Very High | Low | $$ | High-performance |
+| **Hydraulic** | Very High | Medium | Low | $$$ | Heavy-duty (Atlas) |
+| **Pneumatic** | Low | Low | High | $ | Soft robotics |
+| **SEA** | Medium | Medium | Very High | $$$ | Safe interaction |
+
+### Key Metrics
+
+**Power Density:**
+$$
+\rho_{\text{power}} = \frac{P_{\text{max}}}{m} \quad [\text{W/kg}]
+$$
+
+**Torque Constant (Electric):**
+$$
+\tau = K_t \cdot I
+$$
+Where:
+- $K_t$: Torque constant [Nm/A]
+- $I$: Current [A]
+
+**Gear Ratio Selection:**
+$$
+N = \frac{\tau_{\text{required}}}{\tau_{\text{motor}}}
+$$
+
+---
+
+## 🎯 Part 1: Electric Motors
+
+### Brushless DC Motors (BLDC)
+
+**Advantages:**
+- High efficiency (>90%)
+- High power density (5-10 W/g)
+- Precise control
+- Long lifespan
+
+**Control Methods:**
+1. **Field-Oriented Control (FOC)**: Best performance
+2. **Trapezoidal Commutation**: Simpler, lower cost
+3. **Sinusoidal Commutation**: Smooth torque
+
+### Implementation: BLDC Motor Controller
+
+```python
+import numpy as np
+from dataclasses import dataclass
+
+@dataclass
+class MotorParameters:
+    """BLDC motor parameters."""
+    Kt: float = 0.1          # Torque constant [Nm/A]
+    Ke: float = 0.1          # Back-EMF constant [V/rad/s]
+    R: float = 1.0           # Resistance [Ω]
+    L: float = 0.001         # Inductance [H]
+    J: float = 0.0001        # Rotor inertia [kg⋅m²]
+    B: float = 0.0001        # Viscous friction [Nm⋅s/rad]
+    max_current: float = 20.0  # Max current [A]
+    max_voltage: float = 48.0  # Max voltage [V]
+
+
+class BLDCMotor:
+    """Brushless DC motor model and controller."""
+    
+    def __init__(self, params: MotorParameters, dt=0.001):
+        self.params = params
+        self.dt = dt
+        
+        # State: [position, velocity, current]
+        self.position = 0.0      # rad
+        self.velocity = 0.0      # rad/s
+        self.current = 0.0       # A
+        
+        # Control
+        self.voltage = 0.0       # V
+        
+        # PID gains for torque control
+        self.kp = 5.0
+        self.ki = 0.5
+        self.kd = 0.1
+        self.integral = 0.0
+        self.prev_error = 0.0
+    
+    def set_voltage(self, voltage: float):
+        """Set motor voltage (saturated)."""
+        self.voltage = np.clip(voltage, -self.params.max_voltage, 
+                               self.params.max_voltage)
+    
+    def set_torque(self, desired_torque: float):
+        """
+        Set desired torque (computed torque control).
+        
+        Args:
+            desired_torque: Desired motor torque [Nm]
+        """
+        # Torque to current: τ = Kt * I
+        desired_current = desired_torque / self.params.Kt
+        
+        # Current limiting
+        desired_current = np.clip(desired_current, -self.params.max_current,
+                                 self.params.max_current)
+        
+        # PI current control
+        error = desired_current - self.current
+        self.integral += error * self.dt
+        
+        # Anti-windup
+        self.integral = np.clip(self.integral, -10, 10)
+        
+        voltage = (self.kp * error + 
+                  self.ki * self.integral)
+        
+        self.set_voltage(voltage)
+    
+    def step(self, load_torque: float = 0.0):
+        """
+        Simulate motor dynamics for one timestep.
+        
+        Args:
+            load_torque: External load torque [Nm]
+        """
+        # Motor equations:
+        # V = I*R + L*dI/dt + Ke*ω  (Electrical)
+        # τ_motor = Kt*I              (Torque generation)
+        # J*dω/dt = τ_motor - B*ω - τ_load  (Mechanical)
+        
+        # Back-EMF
+        back_emf = self.params.Ke * self.velocity
+        
+        # Current dynamics: dI/dt = (V - I*R - Ke*ω) / L
+        dI_dt = (self.voltage - self.current * self.params.R - back_emf) / self.params.L
+        
+        # Motor torque
+        motor_torque = self.params.Kt * self.current
+        
+        # Velocity dynamics: dω/dt = (τ_motor - B*ω - τ_load) / J
+        dw_dt = (motor_torque - self.params.B * self.velocity - load_torque) / self.params.J
+        
+        # Integrate (Euler)
+        self.current += dI_dt * self.dt
+        self.velocity += dw_dt * self.dt
+        self.position += self.velocity * self.dt
+    
+    def get_state(self) -> dict:
+        """Get motor state."""
+        return {
+            'position': self.position,
+            'velocity': self.velocity,
+            'current': self.current,
+            'torque': self.params.Kt * self.current,
+            'voltage': self.voltage,
+            'power': self.voltage * self.current
+        }
+
+
+class GearboxTransmission:
+    """Gearbox transmission model."""
+    
+    def __init__(self, ratio: float, efficiency=0.85):
+        """
+        Initialize gearbox.
+        
+        Args:
+            ratio: Gear ratio N:1 (motor:load)
+            efficiency: Transmission efficiency
+        """
+        self.ratio = ratio
+        self.efficiency = efficiency
+    
+    def motor_to_load(self, motor_pos, motor_vel, motor_torque):
+        """Convert motor-side to load-side."""
+        load_pos = motor_pos / self.ratio
+        load_vel = motor_vel / self.ratio
+        load_torque = motor_torque * self.ratio * self.efficiency
+        
+        return load_pos, load_vel, load_torque
+    
+    def load_to_motor(self, load_torque):
+        """Convert load-side torque to motor-side."""
+        motor_torque = load_torque / (self.ratio * self.efficiency)
+        return motor_torque
+
+
+# Example: Joint actuator with motor + gearbox
+class JointActuator:
+    """Complete joint actuator (motor + gearbox)."""
+    
+    def __init__(self, motor_params: MotorParameters, gear_ratio: float):
+        self.motor = BLDCMotor(motor_params)
+        self.gearbox = GearboxTransmission(gear_ratio)
+        
+        # Joint state (load side)
+        self.joint_position = 0.0
+        self.joint_velocity = 0.0
+        self.joint_torque = 0.0
+    
+    def set_joint_torque(self, desired_joint_torque: float):
+        """Command joint torque."""
+        # Reflect torque to motor side
+        motor_torque = self.gearbox.load_to_motor(desired_joint_torque)
+        self.motor.set_torque(motor_torque)
+    
+    def step(self, external_load: float = 0.0):
+        """Simulate actuator dynamics."""
+        # Motor side load (reflected from joint)
+        motor_load = self.gearbox.load_to_motor(external_load)
+        
+        # Step motor
+        self.motor.step(motor_load)
+        
+        # Get joint state
+        motor_state = self.motor.get_state()
+        self.joint_position, self.joint_velocity, self.joint_torque = \
+            self.gearbox.motor_to_load(
+                motor_state['position'],
+                motor_state['velocity'],
+                motor_state['torque']
+            )
+    
+    def get_joint_state(self) -> dict:
+        """Get joint-side state."""
+        return {
+            'position': self.joint_position,
+            'velocity': self.joint_velocity,
+            'torque': self.joint_torque,
+            'motor_current': self.motor.current
+        }
+
+
+# Example usage
+if __name__ == '__main__':
+    # Create actuator
+    params = MotorParameters(
+        Kt=0.05,          # 0.05 Nm/A
+        Ke=0.05,          # 0.05 V/(rad/s)
+        R=0.5,            # 0.5 Ω
+        L=0.0005,         # 0.5 mH
+        J=0.00005,        # 50 g⋅cm²
+        B=0.00001,        # Small friction
+        max_current=30.0,
+        max_voltage=24.0
+    )
+    
+    actuator = JointActuator(params, gear_ratio=100.0)
+    
+    # Simulate step response
+    print("Joint Step Response (5 Nm torque):")
+    for t in np.linspace(0, 1, 100):
+        actuator.set_joint_torque(5.0)  # 5 Nm
+        actuator.step(external_load=0.0)
+        
+        if int(t * 100) % 10 == 0:
+            state = actuator.get_joint_state()
+            print(f"t={t:.2f}s: pos={state['position']:.3f} rad, "
+                  f"vel={state['velocity']:.3f} rad/s, "
+                  f"τ={state['torque']:.2f} Nm")
+```
+
+---
+
+## 🎯 Part 2: Series Elastic Actuators (SEA)
+
+### Why SEA?
+
+**Traditional Actuators:**
+- Stiff (high impedance)
+- Poor force control
+- Unsafe for human interaction
+- Energy storage difficult
+
+**Series Elastic Actuators:**
+- Compliant (variable impedance)
+- Accurate force sensing
+- Safe collisions
+- Energy storage in spring
+
+### SEA Architecture
+
+```
+Motor → Gearbox → Spring → Load
+                    ↑
+              Force Sensor
+```
+
+**Spring Torque:**
+$$
+\tau_{\text{spring}} = K_s \cdot (\theta_{\text{motor}} - \theta_{\text{load}})
+$$
+
+Where:
+- $K_s$: Spring stiffness [Nm/rad]
+- $\theta_{\text{motor}} - \theta_{\text{load}}$: Spring deflection
+
+### Implementation: Series Elastic Actuator
+
+```python
+class SeriesElasticActuator:
+    """Series Elastic Actuator (SEA) with force control."""
+    
+    def __init__(self, motor_params: MotorParameters, gear_ratio: float,
+                 spring_stiffness: float, dt=0.001):
+        """
+        Initialize SEA.
+        
+        Args:
+            motor_params: Motor parameters
+            gear_ratio: Gear reduction ratio
+            spring_stiffness: Spring constant [Nm/rad]
+            dt: Timestep
+        """
+        self.motor = BLDCMotor(motor_params, dt)
+        self.gearbox = GearboxTransmission(gear_ratio)
+        self.K_spring = spring_stiffness
+        self.dt = dt
+        
+        # State
+        self.motor_position = 0.0
+        self.load_position = 0.0
+        self.load_velocity = 0.0
+        self.load_inertia = 0.01  # kg⋅m²
+        
+        # Force controller
+        self.kp_force = 0.5
+        self.ki_force = 0.1
+        self.force_integral = 0.0
+    
+    def get_spring_torque(self) -> float:
+        """Compute torque from spring deflection."""
+        deflection = self.motor_position - self.load_position
+        return self.K_spring * deflection
+    
+    def set_desired_force(self, desired_torque: float):
+        """
+        Force control: adjust motor position to achieve desired torque.
+        
+        Args:
+            desired_torque: Desired output torque [Nm]
+        """
+        # Measure actual torque from spring
+        actual_torque = self.get_spring_torque()
+        
+        # Force error
+        error = desired_torque - actual_torque
+        self.force_integral += error * self.dt
+        
+        # PI controller for spring deflection
+        desired_deflection = (self.kp_force * error + 
+                             self.ki_force * self.force_integral)
+        
+        # Desired motor position
+        desired_motor_pos = self.load_position + desired_deflection
+        
+        # Position controller (for motor)
+        motor_torque = 10.0 * (desired_motor_pos - self.motor_position)
+        self.motor.set_torque(motor_torque)
+    
+    def step(self, external_load: float = 0.0):
+        """Simulate SEA dynamics."""
+        # Spring torque
+        spring_torque = self.get_spring_torque()
+        
+        # Motor dynamics (sees spring as load)
+        motor_load = -spring_torque / self.gearbox.ratio
+        self.motor.step(motor_load)
+        
+        # Update motor position (through gearbox)
+        motor_state = self.motor.get_state()
+        self.motor_position = motor_state['position'] / self.gearbox.ratio
+        
+        # Load dynamics: J*θ̈ = τ_spring - τ_external
+        load_accel = (spring_torque - external_load) / self.load_inertia
+        self.load_velocity += load_accel * self.dt
+        self.load_position += self.load_velocity * self.dt
+    
+    def get_state(self) -> dict:
+        """Get SEA state."""
+        return {
+            'motor_position': self.motor_position,
+            'load_position': self.load_position,
+            'load_velocity': self.load_velocity,
+            'spring_deflection': self.motor_position - self.load_position,
+            'output_torque': self.get_spring_torque(),
+            'motor_current': self.motor.current
+        }
+
+
+# Example: Force control with SEA
+if __name__ == '__main__':
+    params = MotorParameters(
+        Kt=0.1, Ke=0.1, R=1.0, L=0.001,
+        J=0.0001, B=0.0001,
+        max_current=20.0, max_voltage=48.0
+    )
+    
+    sea = SeriesElasticActuator(
+        motor_params=params,
+        gear_ratio=50.0,
+        spring_stiffness=1000.0,  # 1000 Nm/rad
+        dt=0.001
+    )
+    
+    print("SEA Force Control (10 Nm desired):")
+    for t in np.linspace(0, 2, 200):
+        # Command 10 Nm
+        sea.set_desired_force(10.0)
+        
+        # Simulate with varying external load
+        external_load = 5.0 * np.sin(2*np.pi*t)
+        sea.step(external_load)
+        
+        if int(t * 100) % 20 == 0:
+            state = sea.get_state()
+            print(f"t={t:.2f}s: τ_out={state['output_torque']:.2f} Nm, "
+                  f"deflection={state['spring_deflection']:.4f} rad, "
+                  f"ext_load={external_load:.2f} Nm")
+```
+
+---
+
+## 🎯 Part 3: Hydraulic Actuators
+
+### Hydraulic Advantages
+
+**Why Boston Dynamics uses hydraulics:**
+- Very high power density (50-100 W/kg)
+- High force capability
+- Inherent compliance (fluid compressibility)
+- Good for explosive movements (jumping)
+
+**Disadvantages:**
+- Complex (pump, valves, fluid management)
+- Expensive
+- Maintenance intensive
+- Noise
+
+### Hydraulic Cylinder Model
+
+**Force Generation:**
+$$
+F = P \cdot A
+$$
+
+Where:
+- $P$: Hydraulic pressure [Pa]
+- $A$: Piston area [m²]
+
+**Flow Rate:**
+$$
+Q = A \cdot v
+$$
+
+Where:
+- $v$: Piston velocity [m/s]
+
+### Implementation: Simplified Hydraulic Actuator
+
+```python
+class HydraulicActuator:
+    """Simplified hydraulic cylinder model."""
+    
+    def __init__(self, piston_area=0.001, max_pressure=20e6, dt=0.001):
+        """
+        Initialize hydraulic actuator.
+        
+        Args:
+            piston_area: Piston cross-sectional area [m²]
+            max_pressure: Maximum system pressure [Pa]
+            dt: Timestep
+        """
+        self.A = piston_area
+        self.P_max = max_pressure
+        self.dt = dt
+        
+        # State
+        self.position = 0.0      # m
+        self.velocity = 0.0      # m/s
+        self.pressure = 0.0      # Pa
+        
+        # Load
+        self.load_mass = 10.0    # kg
+    
+    def set_pressure(self, pressure: float):
+        """Set hydraulic pressure."""
+        self.pressure = np.clip(pressure, 0, self.P_max)
+    
+    def step(self, external_force: float = 0.0):
+        """Simulate hydraulic cylinder."""
+        # Force generation
+        hydraulic_force = self.pressure * self.A
+        
+        # Dynamics: m*a = F_hydraulic - F_external
+        accel = (hydraulic_force - external_force) / self.load_mass
+        
+        self.velocity += accel * self.dt
+        self.position += self.velocity * self.dt
+    
+    def get_state(self) -> dict:
+        return {
+            'position': self.position,
+            'velocity': self.velocity,
+            'force': self.pressure * self.A,
+            'pressure': self.pressure / 1e6,  # MPa
+            'power': self.pressure * self.A * self.velocity
+        }
+
+
+# Example usage
+if __name__ == '__main__':
+    hyd = HydraulicActuator(piston_area=0.0005, max_pressure=20e6)
+    
+    print("Hydraulic Jump Simulation:")
+    for t in np.linspace(0, 0.5, 50):
+        # Apply pressure pulse (jump)
+        if t < 0.2:
+            hyd.set_pressure(15e6)  # 15 MPa
+        else:
+            hyd.set_pressure(0)
+        
+        hyd.step(external_force=hyd.load_mass * 9.81)  # Gravity
+        
+        if int(t * 100) % 10 == 0:
+            state = hyd.get_state()
+            print(f"t={t:.2f}s: pos={state['position']:.3f} m, "
+                  f"vel={state['velocity']:.2f} m/s, "
+                  f"F={state['force']:.0f} N")
+```
+
+---
+
+## 💻 Hands-On Exercise
+
+### 🎯 Exercise: Actuator Selection and Design
+
+**Difficulty**: ⭐⭐ Intermediate  
+**Time**: 90 minutes
+
+**Scenario**: Design knee actuator for 60kg humanoid robot.
+
+**Requirements:**
+- Peak torque: 100 Nm
+- Continuous torque: 40 Nm
+- Max speed: 10 rad/s
+- Weight limit: 1.5 kg
+- Safe human interaction
+
+**Tasks:**
+1. Select motor (BLDC) with appropriate specs
+2. Design gearbox (ratio, efficiency)
+3. Optionally add SEA for compliance
+4. Simulate step response and force control
+5. Compare with hydraulic alternative
+
+**Starter Code:**
+
+```python
+def select_motor_and_gearbox(peak_torque, max_speed, weight_limit):
+    """
+    Select motor and gearbox for given requirements.
+    
+    TODO:
+    1. Calculate required motor torque and speed
+    2. Select gear ratio
+    3. Verify motor specs meet requirements
+    4. Check weight constraint
+    
+    Returns:
+        MotorParameters, gear_ratio
+    """
+    # YOUR CODE HERE
+    pass
+
+# Test your design
+if __name__ == '__main__':
+    motor, ratio = select_motor_and_gearbox(
+        peak_torque=100.0,
+        max_speed=10.0,
+        weight_limit=1.5
+    )
+    
+    # Simulate
+    actuator = JointActuator(motor, ratio)
+    # ... test step response
+```
+
+**Success Criteria:**
+- ✅ Meets torque requirements (100 Nm peak)
+- ✅ Meets speed requirements (10 rad/s)
+- ✅ Under weight limit (1.5 kg)
+- ✅ Stable control response
+- ✅ Cost-effective solution
+
+---
+
+## 🧠 Key Takeaways
+
+1. **Electric motors** offer best control and efficiency
+2. **Gear ratio** trades speed for torque (N:1 reduction)
+3. **SEA** provides compliance and accurate force control
+4. **Hydraulics** excel at high power density but add complexity
+5. **Actuator selection** requires careful trade-off analysis
+
+---
+
+## 📚 Further Reading
+
+- **Paper**: "Design Principles for Energy-Efficient Legged Locomotion" (MIT, 2011)
+- **Paper**: "Series Elastic Actuators" (Pratt & Williamson, 1995)
+- **Tutorial**: [Brushless DC Motor Control](https://www.ti.com/lit/an/sprabq2/sprabq2.pdf)
+
+---
+
+## ➡️ Next Section
+
+**[3.1.4 — Sensor Fusion →](./04-sensor-fusion)**
+
+Learn to combine multiple sensors for robust state estimation.
