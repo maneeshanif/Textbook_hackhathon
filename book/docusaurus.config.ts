@@ -106,8 +106,8 @@ const config: Config = {
           title: 'Docs',
           items: [
             {
-              label: 'Introduction',
-              to: '/docs/01-introduction/1.0-overview',
+              label: 'Book Chapters',
+              to: '/docs',
             },
           ],
         },
