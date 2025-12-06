@@ -1,0 +1,463 @@
+---
+title: "3.1.1 — Vision Systems for Humanoid Robots"
+sidebar_label: "3.1.1 Vision Systems"
+sidebar_position: 1
+description: "Comprehensive guide to cameras, depth sensors, lidar, and visual perception for humanoid robotics"
+module: 3
+week: 11
+section: 1
+tags: [vision, cameras, depth-sensors, lidar, perception, opencv, intermediate]
+difficulty: intermediate
+estimated_time: "5 hours"
+---
+
+:::info ترجمہ زیر التواء
+یہ صفحہ فی الحال انگریزی سے اردو میں ترجمہ کیا جا رہا ہے۔ مکمل مواد کے لیے براہ کرم انگریزی ورژن دیکھیں۔
+:::
+
+
+# 3.1.1 — Vision Systems for Humanoid Robots
+
+<DifficultyBadge level="intermediate" />
+
+> **Summary**: Master the visual sensing technologies that enable robots to perceive and understand their environment.
+
+## 🎯 Learning Objectives
+
+By the end of this section, you will be able to:
+- Understand camera models and calibration
+- Process RGB and depth images
+- Compare different depth sensing technologies
+- Implement stereo vision algorithms
+- Use lidar for mapping and localization
+- Select appropriate sensors for specific tasks
+
+## 📋 Prerequisites
+
+- Basic linear algebra (matrices, transformations)
+- Python with NumPy
+- Computer vision basics (helpful but not required)
+
+## 📖 Content
+
+### Camera Technologies Overview
+
+| Technology | Range | FPS | Resolution | Cost | Use Case |
+|------------|-------|-----|------------|------|----------|
+| **RGB Camera** | N/A | 30-120 | 720p-4K | $ | Object detection, tracking |
+| **Stereo Camera** | 0.5-10m | 30-60 | 720p | $$ | Depth estimation, obstacles |
+| **ToF (Time-of-Flight)** | 0.2-5m | 30-60 | VGA | $$$ | Indoor navigation, gestures |
+| **Structured Light** | 0.5-3m | 30 | VGA | $$ | 3D scanning, manipulation |
+| **Lidar (2D)** | 0.1-30m | 10-40 | Angular | $$$ | Obstacle detection, SLAM |
+| **Lidar (3D)** | 1-100m | 10-20 | 3D point cloud | $$$$ | Outdoor navigation, mapping |
+
+### RGB Cameras: The Foundation
+
+**Pinhole Camera Model:**
+
+$$
+\begin{bmatrix} u \\ v \\ 1 \end{bmatrix} = 
+K \begin{bmatrix} R & t \end{bmatrix}
+\begin{bmatrix} X \\ Y \\ Z \\ 1 \end{bmatrix}
+$$
+
+Where:
+- $(u, v)$ = pixel coordinates
+- $(X, Y, Z)$ = 3D world coordinates
+- $K$ = intrinsic matrix
+- $[R | t]$ = extrinsic matrix (rotation + translation)
+
+**Intrinsic Matrix:**
+
+$$
+K = \begin{bmatrix}
+f_x & 0 & c_x \\
+0 & f_y & c_y \\
+0 & 0 & 1
+\end{bmatrix}
+$$
+
+- $f_x, f_y$ = focal lengths (pixels)
+- $c_x, c_y$ = principal point (image center)
+
+**Python Implementation:**
+
+```python
+import numpy as np
+import cv2
+
+class CameraModel:
+    """Pinhole camera model with distortion."""
+    
+    def __init__(self, width=640, height=480, fov_deg=60):
+        """
+        Initialize camera with field of view.
+        
+        Args:
+            width: Image width (pixels)
+            height: Image height (pixels)
+            fov_deg: Horizontal field of view (degrees)
+        """
+        self.width = width
+        self.height = height
+        
+        # Compute focal length from FOV
+        fov_rad = np.deg2rad(fov_deg)
+        self.fx = width / (2 * np.tan(fov_rad / 2))
+        self.fy = self.fx  # Assume square pixels
+        
+        # Principal point (usually image center)
+        self.cx = width / 2
+        self.cy = height / 2
+        
+        # Intrinsic matrix
+        self.K = np.array([
+            [self.fx, 0, self.cx],
+            [0, self.fy, self.cy],
+            [0, 0, 1]
+        ])
+        
+        # Distortion coefficients (k1, k2, p1, p2, k3)
+        self.dist_coeffs = np.zeros(5)
+    
+    def project_3d_to_2d(self, points_3d):
+        """
+        Project 3D points to 2D image coordinates.
+        
+        Args:
+            points_3d: Nx3 array of 3D points [X, Y, Z]
+        
+        Returns:
+            points_2d: Nx2 array of 2D points [u, v]
+        """
+        # Homogeneous coordinates
+        points_3d_h = np.hstack([points_3d, np.ones((points_3d.shape[0], 1))])
+        
+        # Project
+        points_2d_h = (self.K @ points_3d.T).T
+        
+        # Normalize
+        points_2d = points_2d_h[:, :2] / points_2d_h[:, [2]]
+        
+        return points_2d
+    
+    def backproject_2d_to_3d(self, points_2d, depth):
+        """
+        Backproject 2D points to 3D given depth.
+        
+        Args:
+            points_2d: Nx2 array of 2D points [u, v]
+            depth: Nx1 array of depth values (m)
+        
+        Returns:
+            points_3d: Nx3 array of 3D points [X, Y, Z]
+        """
+        # Inverse intrinsics
+        K_inv = np.linalg.inv(self.K)
+        
+        # Homogeneous 2D coordinates
+        points_2d_h = np.hstack([points_2d, np.ones((points_2d.shape[0], 1))])
+        
+        # Backproject
+        points_3d = (K_inv @ points_2d_h.T).T * depth
+        
+        return points_3d
+
+# Example usage
+camera = CameraModel(width=640, height=480, fov_deg=60)
+
+# Project 3D point
+point_3d = np.array([[1.0, 0.5, 2.0]])  # 2m in front, 0.5m right, 1m up
+point_2d = camera.project_3d_to_2d(point_3d)
+print(f"3D Point: {point_3d[0]}")
+print(f"Projects to pixel: {point_2d[0]}")
+
+# Backproject with known depth
+depth = np.array([[2.0]])
+point_3d_reconstructed = camera.backproject_2d_to_3d(point_2d, depth)
+print(f"Reconstructed 3D: {point_3d_reconstructed[0]}")
+```
+
+### Depth Sensing: Stereo Vision
+
+**Principle:** Triangulation from two cameras
+
+**Disparity → Depth Relationship:**
+
+$$
+Z = \frac{f \cdot B}{d}
+$$
+
+Where:
+- $Z$ = depth (m)
+- $f$ = focal length (pixels)
+- $B$ = baseline (distance between cameras, m)
+- $d$ = disparity (pixels)
+
+**Stereo Matching Implementation:**
+
+```python
+class StereoVision:
+    """Stereo vision depth estimation."""
+    
+    def __init__(self, baseline=0.12, focal_length=400):
+        """
+        Args:
+            baseline: Distance between cameras (m)
+            focal_length: Focal length (pixels)
+        """
+        self.baseline = baseline  # 12cm typical for humanoid
+        self.focal_length = focal_length
+        
+        # Stereo matcher (Semi-Global Block Matching)
+        self.stereo = cv2.StereoSGBM_create(
+            minDisparity=0,
+            numDisparities=128,  # Must be divisible by 16
+            blockSize=5,
+            P1=8 * 3 * 5**2,
+            P2=32 * 3 * 5**2,
+            disp12MaxDiff=1,
+            uniquenessRatio=10,
+            speckleWindowSize=100,
+            speckleRange=32
+        )
+    
+    def compute_depth_map(self, left_image, right_image):
+        """
+        Compute depth map from stereo image pair.
+        
+        Args:
+            left_image: Left camera image (grayscale)
+            right_image: Right camera image (grayscale)
+        
+        Returns:
+            depth_map: Depth in meters
+        """
+        # Compute disparity
+        disparity = self.stereo.compute(left_image, right_image).astype(np.float32) / 16.0
+        
+        # Convert disparity to depth
+        # Avoid division by zero
+        depth_map = np.zeros_like(disparity)
+        mask = disparity > 0
+        depth_map[mask] = (self.baseline * self.focal_length) / disparity[mask]
+        
+        # Clip unrealistic depths
+        depth_map = np.clip(depth_map, 0, 10)  # Max 10m
+        
+        return depth_map
+    
+    def get_point_cloud(self, depth_map, camera_model):
+        """
+        Convert depth map to 3D point cloud.
+        
+        Args:
+            depth_map: HxW depth map (m)
+            camera_model: CameraModel instance
+        
+        Returns:
+            points_3d: Nx3 point cloud
+            colors: Nx3 RGB colors (if image provided)
+        """
+        height, width = depth_map.shape
+        
+        # Create pixel grid
+        u, v = np.meshgrid(np.arange(width), np.arange(height))
+        points_2d = np.stack([u, v], axis=-1).reshape(-1, 2)
+        depth_values = depth_map.reshape(-1, 1)
+        
+        # Backproject to 3D
+        points_3d = camera_model.backproject_2d_to_3d(points_2d, depth_values)
+        
+        # Filter invalid points
+        valid = (depth_values > 0).flatten()
+        points_3d = points_3d[valid]
+        
+        return points_3d
+
+# Example: Processing stereo images
+stereo = StereoVision(baseline=0.12, focal_length=400)
+
+# Load stereo pair (grayscale)
+# left_img = cv2.imread('left.png', cv2.IMREAD_GRAYSCALE)
+# right_img = cv2.imread('right.png', cv2.IMREAD_GRAYSCALE)
+
+# depth_map = stereo.compute_depth_map(left_img, right_img)
+# point_cloud = stereo.get_point_cloud(depth_map, camera)
+```
+
+### Time-of-Flight (ToF) Sensors
+
+**Principle:** Measure time for infrared light to return
+
+**Depth Calculation:**
+
+$$
+d = \frac{c \cdot \Delta t}{2}
+$$
+
+Where:
+- $c$ = speed of light
+- $\Delta t$ = round-trip time
+
+**Advantages:**
+- ✅ Fast (30-60 FPS)
+- ✅ No texture dependency (works on featureless surfaces)
+- ✅ Compact
+- ✅ Low power
+
+**Disadvantages:**
+- ❌ Limited range (typically &lt;5m)
+- ❌ Affected by ambient light
+- ❌ Lower resolution than stereo
+- ❌ Multi-camera interference
+
+**Popular ToF Sensors:**
+- Intel RealSense D400 series
+- Microsoft Kinect Azure
+- PMD CamBoard
+
+### Lidar for Mapping
+
+**2D Lidar:**
+- Single plane scanning
+- 360° coverage
+- 10-40 Hz
+- Outdoor range: 30m+
+
+**3D Lidar:**
+- Multiple scanning planes or solid-state
+- Full 3D point cloud
+- 10-20 Hz
+- Expensive ($$$-$$$$)
+
+**Lidar Processing:**
+
+```python
+class LidarProcessor:
+    """Process 2D lidar scans."""
+    
+    def __init__(self, max_range=10.0, angle_resolution_deg=0.5):
+        self.max_range = max_range
+        self.angle_res = np.deg2rad(angle_resolution_deg)
+        
+    def scan_to_cartesian(self, ranges, angles):
+        """
+        Convert polar scan to Cartesian coordinates.
+        
+        Args:
+            ranges: Array of distances (m)
+            angles: Array of angles (radians)
+        
+        Returns:
+            points: Nx2 array of [x, y] coordinates
+        """
+        # Filter invalid readings
+        valid = (ranges > 0) & (ranges < self.max_range)
+        ranges_valid = ranges[valid]
+        angles_valid = angles[valid]
+        
+        # Convert to Cartesian
+        x = ranges_valid * np.cos(angles_valid)
+        y = ranges_valid * np.sin(angles_valid)
+        
+        return np.stack([x, y], axis=1)
+    
+    def detect_obstacles(self, points, safety_radius=0.5):
+        """
+        Detect obstacles within safety radius.
+        
+        Args:
+            points: Nx2 array of [x, y] points
+            safety_radius: Distance threshold (m)
+        
+        Returns:
+            obstacles: Boolean array, True if within safety radius
+        """
+        distances = np.linalg.norm(points, axis=1)
+        obstacles = distances < safety_radius
+        
+        return obstacles
+    
+    def segment_lines(self, points, max_distance=0.1):
+        """
+        Segment point cloud into line segments (walls, etc.).
+        
+        Args:
+            points: Nx2 array
+            max_distance: Max distance between consecutive points (m)
+        
+        Returns:
+            segments: List of line segments
+        """
+        segments = []
+        current_segment = [points[0]]
+        
+        for i in range(1, len(points)):
+            dist = np.linalg.norm(points[i] - points[i-1])
+            
+            if dist < max_distance:
+                current_segment.append(points[i])
+            else:
+                if len(current_segment) > 5:  # Minimum segment length
+                    segments.append(np.array(current_segment))
+                current_segment = [points[i]]
+        
+        if len(current_segment) > 5:
+            segments.append(np.array(current_segment))
+        
+        return segments
+```
+
+## 💻 Hands-On Exercise
+
+### Exercise 3.1.1: Vision-Based Obstacle Detection
+
+**Difficulty**: ⭐⭐ Intermediate  
+**Time**: 90 minutes
+
+**Task**: Implement obstacle detection using depth camera
+
+**Requirements:**
+1. Calibrate camera intrinsics
+2. Compute depth map from stereo or ToF
+3. Segment obstacles in 3D space
+4. Publish obstacle bounding boxes
+5. Visualize in 3D
+
+<details>
+<summary>✅ Solution Outline</summary>
+
+```python
+# 1. Camera calibration using checkerboard
+# 2. Depth estimation (stereo or direct from ToF)
+# 3. Point cloud generation
+# 4. Ground plane removal (RANSAC)
+# 5. Clustering (DBSCAN or k-means)
+# 6. Bounding box computation
+# 7. Visualization (Open3D or Matplotlib)
+```
+
+</details>
+
+## 🔑 Key Takeaways
+
+- **Multiple sensor types** needed for robust perception
+- **Stereo vision** provides good depth but requires texture
+- **ToF sensors** work in low-light and featureless environments
+- **Lidar** excellent for mapping but expensive
+- **Sensor fusion** combines strengths of each modality
+
+## 📚 Further Reading
+
+- **Book**: *Computer Vision: Algorithms and Applications* (Szeliski)
+- **Course**: [Multiple View Geometry in Computer Vision](https://www.robots.ox.ac.uk/~vgg/hzbook/)
+- **Library**: [OpenCV Documentation](https://docs.opencv.org/)
+
+## ➡️ Next Steps
+
+Continue to [3.1.2 — Proprioceptive Sensors](./02-proprioceptive-sensors) to learn about internal robot sensing.
+
+---
+
+<ChatbotPlaceholder />

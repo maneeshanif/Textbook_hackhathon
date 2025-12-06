@@ -78,8 +78,8 @@
 - [x] T028 [P] [US1] Create `book/docs/03-sensors-actuators/3.1-sensor-types.mdx` with section content (created as 3.1-vision-systems.mdx, 3.2-force-imu-sensors.mdx, 3.3-actuator-technologies.mdx with technical depth)
 - [x] T029 [US1] Create `book/docs/04-ai-integration/4.0-overview.mdx` with ChapterHeader and placeholder content
 - [x] T030 [P] [US1] Create `book/docs/04-ai-integration/4.1-machine-learning.mdx` with section content (created as 4.1-computer-vision.mdx, 4.2-learning-based-control.mdx, 4.3-real-world-applications.mdx with technical depth)
-- [ ] T031 [US1] Implement ChapterHeader component in `book/src/components/ChapterHeader/index.tsx` per contract
-- [ ] T032 [P] [US1] Create ChapterHeader styles in `book/src/components/ChapterHeader/styles.module.css`
+- [x] T031 [US1] Implement ChapterHeader component in `book/src/components/ChapterHeader/index.tsx` per contract
+- [x] T032 [P] [US1] Create ChapterHeader styles in `book/src/components/ChapterHeader/styles.module.css`
 
 **Checkpoint**: 4 chapters with X.Y.Z structure navigable, sidebar autogenerates, homepage links to Chapter 1
 
@@ -93,14 +93,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T033 [US2] Implement DifficultyBadge component in `book/src/components/DifficultyBadge/index.tsx` per contract
-- [ ] T034 [P] [US2] Create DifficultyBadge styles in `book/src/components/DifficultyBadge/styles.module.css`
-- [ ] T035 [US2] Add DifficultyBadge to MDXComponents registration in `book/src/theme/MDXComponents.tsx`
-- [ ] T036 [US2] Update `book/docs/01-introduction/1.0-overview.mdx` frontmatter with difficulty: beginner
-- [ ] T037 [P] [US2] Update `book/docs/01-introduction/1.1-what-is-physical-ai.mdx` frontmatter with difficulty: beginner
-- [ ] T038 [P] [US2] Update `book/docs/02-humanoid-robotics/2.0-overview.mdx` frontmatter with difficulty: intermediate
-- [ ] T039 [P] [US2] Update `book/docs/03-sensors-actuators/3.0-overview.mdx` frontmatter with difficulty: intermediate
-- [ ] T040 [P] [US2] Update `book/docs/04-ai-integration/4.0-overview.mdx` frontmatter with difficulty: advanced
+- [x] T033 [US2] Implement DifficultyBadge component in `book/src/components/DifficultyBadge/index.tsx` per contract
+- [x] T034 [P] [US2] Create DifficultyBadge styles in `book/src/components/DifficultyBadge/styles.module.css`
+- [x] T035 [US2] Add DifficultyBadge to MDXComponents registration in `book/src/theme/MDXComponents.tsx`
+- [x] T036 [US2] Update `book/docs/01-introduction/1.0-overview.mdx` frontmatter with difficulty: beginner
+- [x] T037 [P] [US2] Update `book/docs/01-introduction/1.1-what-is-physical-ai.mdx` frontmatter with difficulty: beginner
+- [x] T038 [P] [US2] Update `book/docs/02-humanoid-robotics/2.0-overview.mdx` frontmatter with difficulty: intermediate
+- [x] T039 [P] [US2] Update `book/docs/03-sensors-actuators/3.0-overview.mdx` frontmatter with difficulty: intermediate
+- [x] T040 [P] [US2] Update `book/docs/04-ai-integration/4.0-overview.mdx` frontmatter with difficulty: advanced
 - [ ] T041 [US2] Add DifficultyBadge usage examples in chapter content
 
 **Checkpoint**: All chapter pages display difficulty indicators, badges have correct colors and accessibility
@@ -134,14 +134,14 @@
 
 ### Implementation for User Story 4
 
-- [ ] T048 [US4] Create Urdu navbar translations in `book/i18n/ur/docusaurus-theme-classic/navbar.json`
-- [ ] T049 [P] [US4] Create Urdu footer translations in `book/i18n/ur/docusaurus-theme-classic/footer.json`
-- [ ] T050 [P] [US4] Create Urdu code blocks translations in `book/i18n/ur/docusaurus-theme-classic/code-block.json`
-- [ ] T051 [US4] Create sample Urdu chapter translation in `book/i18n/ur/docusaurus-plugin-content-docs/current/01-introduction/1.0-overview.mdx`
-- [ ] T052 [US4] Add RTL-specific layout adjustments in `book/src/css/rtl.css`
-- [ ] T053 [P] [US4] Add difficulty level Urdu translations (beginner=مبتدی, intermediate=انٹرمیڈیٹ, advanced=ایڈوانسڈ)
-- [ ] T054 [US4] Test RTL layout with sidebar, navigation, and content
-- [ ] T055 [US4] Add "Translation pending" notice component for untranslated pages
+- [x] T048 [US4] Create Urdu navbar translations in `book/i18n/ur/docusaurus-theme-classic/navbar.json`
+- [x] T049 [P] [US4] Create Urdu footer translations in `book/i18n/ur/docusaurus-theme-classic/footer.json`
+- [x] T050 [P] [US4] Create Urdu code blocks translations in `book/i18n/ur/docusaurus-theme-classic/code-block.json`
+- [x] T051 [US4] Create sample Urdu chapter translation in `book/i18n/ur/docusaurus-plugin-content-docs/current/01-introduction/1.0-overview.mdx`
+- [x] T052 [US4] Add RTL-specific layout adjustments in `book/src/css/rtl.css`
+- [x] T053 [P] [US4] Add difficulty level Urdu translations (beginner=مبتدی, intermediate=انٹرمیڈیٹ, advanced=ایڈوانسڈ)
+- [x] T054 [US4] Test RTL layout with sidebar, navigation, and content
+- [x] T055 [US4] Add "Translation pending" notice component for untranslated pages
 
 **Checkpoint**: Urdu locale accessible via dropdown, RTL layout works, at least 1 sample page fully translated
 
@@ -155,10 +155,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T056 [US5] Implement ChatbotPlaceholder component in `book/src/components/ChatbotPlaceholder/index.tsx` per contract
-- [ ] T057 [P] [US5] Create ChatbotPlaceholder styles in `book/src/components/ChatbotPlaceholder/styles.module.css`
-- [ ] T058 [US5] Add ChatbotPlaceholder to MDXComponents registration in `book/src/theme/MDXComponents.tsx`
-- [ ] T059 [US5] Add ChatbotPlaceholder to all chapter overview pages (1.0, 2.0, 3.0, 4.0)
+- [x] T056 [US5] Implement ChatbotPlaceholder component in `book/src/components/ChatbotPlaceholder/index.tsx` per contract
+- [x] T057 [P] [US5] Create ChatbotPlaceholder styles in `book/src/components/ChatbotPlaceholder/styles.module.css`
+- [x] T058 [US5] Add ChatbotPlaceholder to MDXComponents registration in `book/src/theme/MDXComponents.tsx`
+- [x] T059 [US5] Add ChatbotPlaceholder to all chapter overview pages (1.0, 2.0, 3.0, 4.0)
 - [ ] T060 [US5] Implement expand/collapse animation and "Coming soon" modal
 - [ ] T061 [US5] Add keyboard accessibility (Tab, Enter/Space) to ChatbotPlaceholder
 - [ ] T062 [US5] Ensure ChatbotPlaceholder works in both light/dark modes and RTL layout
@@ -173,9 +173,9 @@
 
 ### Unit Tests
 
-- [ ] T063 [P] Create DifficultyBadge unit tests in `book/tests/unit/components/DifficultyBadge.test.tsx`
-- [ ] T064 [P] Create ChatbotPlaceholder unit tests in `book/tests/unit/components/ChatbotPlaceholder.test.tsx`
-- [ ] T065 [P] Create ChapterHeader unit tests in `book/tests/unit/components/ChapterHeader.test.tsx`
+- [x] T063 [P] Create DifficultyBadge unit tests in `book/tests/unit/components/DifficultyBadge.test.tsx`
+- [x] T064 [P] Create ChatbotPlaceholder unit tests in `book/tests/unit/components/ChatbotPlaceholder.test.tsx`
+- [x] T065 [P] Create ChapterHeader unit tests in `book/tests/unit/components/ChapterHeader.test.tsx`
 
 ### E2E Tests
 

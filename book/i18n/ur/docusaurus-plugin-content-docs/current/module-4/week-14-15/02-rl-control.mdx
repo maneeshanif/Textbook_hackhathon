@@ -1,0 +1,531 @@
+---
+title: "4.1.2 — Reinforcement Learning for Control"
+sidebar_label: "4.1.2 — RL Control"
+sidebar_position: 2
+description: "Train locomotion policies with PPO, SAC, and model-based RL"
+module: 4
+week: 14
+section: 2
+tags: [reinforcement-learning, ppo, sac, policy-gradient, locomotion, deep-rl]
+difficulty: advanced
+estimated_time: "5-6 hours"
+---
+
+:::info ترجمہ زیر التواء
+یہ صفحہ فی الحال انگریزی سے اردو میں ترجمہ کیا جا رہا ہے۔ مکمل مواد کے لیے براہ کرم انگریزی ورژن دیکھیں۔
+:::
+
+
+# 4.1.2 — Reinforcement Learning for Control
+
+<DifficultyBadge level="advanced" />
+
+> **Summary**: Train robot control policies using deep reinforcement learning — from policy gradients to state-of-the-art algorithms.
+
+## 🎯 Learning Objectives
+
+- Understand RL fundamentals (MDP, rewards, policies)
+- Implement Proximal Policy Optimization (PPO)
+- Train locomotion policies in simulation
+- Apply model-based RL for sample efficiency
+- Debug and optimize RL training
+
+---
+
+## 📖 Theory: RL Basics
+
+### Markov Decision Process (MDP)
+
+**Components:**
+- **State** $s \in \mathcal{S}$: Robot configuration
+- **Action** $a \in \mathcal{A}$: Motor commands
+- **Reward** $r(s, a)$: Task objective
+- **Transition** $P(s'|s,a)$: Dynamics
+- **Policy** $\pi(a|s)$: Controller
+
+**Objective:** Maximize expected return
+$$
+J(\pi) = \mathbb{E}_{\tau \sim \pi} \left[ \sum_{t=0}^{T} \gamma^t r(s_t, a_t) \right]
+$$
+
+Where:
+- $\gamma \in [0, 1]$: Discount factor
+- $\tau = (s_0, a_0, s_1, a_1, \ldots)$: Trajectory
+
+### Policy Gradient Theorem
+
+**Key Insight:** Optimize policy directly by gradient ascent.
+
+$$
+\nabla_\theta J(\pi_\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^{T} \nabla_\theta \log \pi_\theta(a_t | s_t) \cdot A^{\pi}(s_t, a_t) \right]
+$$
+
+Where:
+- $A^{\pi}(s_t, a_t)$: Advantage function (how much better than average)
+- $\pi_\theta$: Policy parameterized by neural network $\theta$
+
+---
+
+## 🎯 Part 1: Proximal Policy Optimization (PPO)
+
+### Why PPO?
+
+**Advantages:**
+- Stable training (clipped objective)
+- Sample efficient for robots
+- State-of-the-art performance
+- Used by OpenAI, Google DeepMind
+
+**Key Innovation:** Limit policy updates to trust region.
+
+**PPO-Clip Objective:**
+$$
+L^{\text{CLIP}}(\theta) = \mathbb{E}_t \left[ \min \left( r_t(\theta) \hat{A}_t, \ \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_t \right) \right]
+$$
+
+Where:
+- $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{\text{old}}}(a_t|s_t)}$: Probability ratio
+- $\epsilon = 0.2$: Clip range
+- $\hat{A}_t$: Estimated advantage
+
+### Implementation: PPO for Bipedal Walking
+
+```python
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import gymnasium as gym
+import numpy as np
+from torch.distributions import Normal
+
+class PolicyNetwork(nn.Module):
+    """Actor network for continuous control."""
+    
+    def __init__(self, state_dim, action_dim, hidden_dim=256):
+        super().__init__()
+        
+        self.network = nn.Sequential(
+            nn.Linear(state_dim, hidden_dim),
+            nn.Tanh(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.Tanh(),
+            nn.Linear(hidden_dim, action_dim)
+        )
+        
+        # Log std (learnable)
+        self.log_std = nn.Parameter(torch.zeros(action_dim))
+    
+    def forward(self, state):
+        """Get mean and std of action distribution."""
+        mean = self.network(state)
+        std = torch.exp(self.log_std).expand_as(mean)
+        return mean, std
+    
+    def sample_action(self, state):
+        """Sample action from policy."""
+        mean, std = self.forward(state)
+        dist = Normal(mean, std)
+        action = dist.sample()
+        log_prob = dist.log_prob(action).sum(dim=-1)
+        return action, log_prob
+    
+    def evaluate_action(self, state, action):
+        """Evaluate log_prob of action."""
+        mean, std = self.forward(state)
+        dist = Normal(mean, std)
+        log_prob = dist.log_prob(action).sum(dim=-1)
+        entropy = dist.entropy().sum(dim=-1)
+        return log_prob, entropy
+
+
+class ValueNetwork(nn.Module):
+    """Critic network for value estimation."""
+    
+    def __init__(self, state_dim, hidden_dim=256):
+        super().__init__()
+        
+        self.network = nn.Sequential(
+            nn.Linear(state_dim, hidden_dim),
+            nn.Tanh(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.Tanh(),
+            nn.Linear(hidden_dim, 1)
+        )
+    
+    def forward(self, state):
+        return self.network(state).squeeze(-1)
+
+
+class PPO:
+    """Proximal Policy Optimization algorithm."""
+    
+    def __init__(self, env, lr=3e-4, gamma=0.99, gae_lambda=0.95,
+                 clip_epsilon=0.2, epochs=10, batch_size=64):
+        self.env = env
+        self.gamma = gamma
+        self.gae_lambda = gae_lambda
+        self.clip_epsilon = clip_epsilon
+        self.epochs = epochs
+        self.batch_size = batch_size
+        
+        # Networks
+        state_dim = env.observation_space.shape[0]
+        action_dim = env.action_space.shape[0]
+        
+        self.policy = PolicyNetwork(state_dim, action_dim)
+        self.value = ValueNetwork(state_dim)
+        
+        # Optimizers
+        self.policy_optim = optim.Adam(self.policy.parameters(), lr=lr)
+        self.value_optim = optim.Adam(self.value.parameters(), lr=lr)
+        
+        # Storage
+        self.reset_storage()
+    
+    def reset_storage(self):
+        """Reset trajectory storage."""
+        self.states = []
+        self.actions = []
+        self.rewards = []
+        self.dones = []
+        self.log_probs = []
+        self.values = []
+    
+    def collect_trajectories(self, num_steps=2048):
+        """Collect training data by running policy."""
+        state, _ = self.env.reset()
+        
+        for _ in range(num_steps):
+            # Convert to tensor
+            state_tensor = torch.FloatTensor(state).unsqueeze(0)
+            
+            # Sample action
+            with torch.no_grad():
+                action, log_prob = self.policy.sample_action(state_tensor)
+                value = self.value(state_tensor)
+            
+            action_np = action.squeeze(0).numpy()
+            
+            # Environment step
+            next_state, reward, terminated, truncated, _ = self.env.step(action_np)
+            done = terminated or truncated
+            
+            # Store
+            self.states.append(state)
+            self.actions.append(action_np)
+            self.rewards.append(reward)
+            self.dones.append(done)
+            self.log_probs.append(log_prob.item())
+            self.values.append(value.item())
+            
+            state = next_state
+            
+            if done:
+                state, _ = self.env.reset()
+        
+        return len(self.states)
+    
+    def compute_gae(self):
+        """Compute Generalized Advantage Estimation."""
+        advantages = []
+        returns = []
+        
+        gae = 0
+        next_value = 0
+        
+        for t in reversed(range(len(self.rewards))):
+            if self.dones[t]:
+                next_value = 0
+                gae = 0
+            
+            delta = self.rewards[t] + self.gamma * next_value - self.values[t]
+            gae = delta + self.gamma * self.gae_lambda * gae
+            
+            advantages.insert(0, gae)
+            returns.insert(0, gae + self.values[t])
+            
+            next_value = self.values[t]
+        
+        return np.array(advantages), np.array(returns)
+    
+    def update(self):
+        """Update policy and value networks."""
+        # Compute advantages
+        advantages, returns = self.compute_gae()
+        
+        # Normalize advantages
+        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        
+        # Convert to tensors
+        states = torch.FloatTensor(np.array(self.states))
+        actions = torch.FloatTensor(np.array(self.actions))
+        old_log_probs = torch.FloatTensor(self.log_probs)
+        advantages_tensor = torch.FloatTensor(advantages)
+        returns_tensor = torch.FloatTensor(returns)
+        
+        # Multiple epochs of updates
+        for epoch in range(self.epochs):
+            # Mini-batch updates
+            indices = np.arange(len(states))
+            np.random.shuffle(indices)
+            
+            for start in range(0, len(states), self.batch_size):
+                end = start + self.batch_size
+                batch_idx = indices[start:end]
+                
+                # Batch data
+                batch_states = states[batch_idx]
+                batch_actions = actions[batch_idx]
+                batch_old_log_probs = old_log_probs[batch_idx]
+                batch_advantages = advantages_tensor[batch_idx]
+                batch_returns = returns_tensor[batch_idx]
+                
+                # Evaluate actions
+                log_probs, entropy = self.policy.evaluate_action(batch_states, batch_actions)
+                
+                # Ratio
+                ratio = torch.exp(log_probs - batch_old_log_probs)
+                
+                # Clipped surrogate objective
+                surr1 = ratio * batch_advantages
+                surr2 = torch.clamp(ratio, 1 - self.clip_epsilon, 
+                                   1 + self.clip_epsilon) * batch_advantages
+                policy_loss = -torch.min(surr1, surr2).mean()
+                
+                # Entropy bonus
+                policy_loss = policy_loss - 0.01 * entropy.mean()
+                
+                # Value loss
+                values = self.value(batch_states)
+                value_loss = ((values - batch_returns) ** 2).mean()
+                
+                # Update policy
+                self.policy_optim.zero_grad()
+                policy_loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.policy.parameters(), 0.5)
+                self.policy_optim.step()
+                
+                # Update value
+                self.value_optim.zero_grad()
+                value_loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.value.parameters(), 0.5)
+                self.value_optim.step()
+        
+        # Reset storage
+        self.reset_storage()
+        
+        return policy_loss.item(), value_loss.item()
+    
+    def train(self, total_timesteps=1_000_000):
+        """Train PPO agent."""
+        timesteps = 0
+        iteration = 0
+        
+        while timesteps < total_timesteps:
+            # Collect data
+            steps = self.collect_trajectories(num_steps=2048)
+            timesteps += steps
+            
+            # Update networks
+            policy_loss, value_loss = self.update()
+            
+            iteration += 1
+            
+            if iteration % 10 == 0:
+                # Evaluate
+                avg_reward = self.evaluate(num_episodes=5)
+                print(f"Iteration {iteration}, Timesteps {timesteps}: "
+                      f"Reward={avg_reward:.2f}, "
+                      f"PolicyLoss={policy_loss:.4f}, "
+                      f"ValueLoss={value_loss:.4f}")
+    
+    def evaluate(self, num_episodes=10):
+        """Evaluate policy."""
+        total_reward = 0
+        
+        for _ in range(num_episodes):
+            state, _ = self.env.reset()
+            episode_reward = 0
+            done = False
+            
+            while not done:
+                state_tensor = torch.FloatTensor(state).unsqueeze(0)
+                with torch.no_grad():
+                    action, _ = self.policy.sample_action(state_tensor)
+                action_np = action.squeeze(0).numpy()
+                
+                state, reward, terminated, truncated, _ = self.env.step(action_np)
+                done = terminated or truncated
+                episode_reward += reward
+            
+            total_reward += episode_reward
+        
+        return total_reward / num_episodes
+
+
+# Example usage
+if __name__ == '__main__':
+    # Create environment
+    env = gym.make('BipedalWalker-v3')
+    
+    # Train PPO
+    agent = PPO(env, lr=3e-4, gamma=0.99)
+    
+    print("Training PPO on BipedalWalker-v3...")
+    agent.train(total_timesteps=1_000_000)
+    
+    # Save model
+    torch.save(agent.policy.state_dict(), 'ppo_biped_policy.pth')
+    torch.save(agent.value.state_dict(), 'ppo_biped_value.pth')
+    
+    print("Training complete!")
+```
+
+---
+
+## 🎯 Part 2: Soft Actor-Critic (SAC)
+
+### Off-Policy RL
+
+**Advantage:** Reuse past experience (sample efficient).
+
+**SAC Key Ideas:**
+1. **Maximum entropy**: Encourage exploration
+2. **Off-policy**: Learn from replay buffer
+3. **Actor-critic**: Separate policy and value
+
+**Entropy-Regularized Objective:**
+$$
+J(\pi) = \sum_t \mathbb{E}_{(s_t,a_t) \sim \rho_\pi} [r(s_t, a_t) + \alpha \mathcal{H}(\pi(\cdot|s_t))]
+$$
+
+Where:
+- $\mathcal{H}(\pi)$: Policy entropy
+- $\alpha$: Temperature (exploration vs exploitation)
+
+### Quick SAC Implementation
+
+```python
+# Simplified SAC (using stable-baselines3)
+from stable_baselines3 import SAC
+
+# Create environment
+env = gym.make('Humanoid-v4')
+
+# Train SAC
+model = SAC(
+    'MlpPolicy',
+    env,
+    learning_rate=3e-4,
+    buffer_size=1_000_000,
+    learning_starts=10_000,
+    batch_size=256,
+    tau=0.005,
+    gamma=0.99,
+    train_freq=1,
+    gradient_steps=1,
+    verbose=1
+)
+
+# Train
+model.learn(total_timesteps=1_000_000)
+
+# Save
+model.save('sac_humanoid')
+
+# Evaluate
+obs, info = env.reset()
+for _ in range(1000):
+    action, _states = model.predict(obs, deterministic=True)
+    obs, reward, terminated, truncated, info = env.step(action)
+    if terminated or truncated:
+        obs, info = env.reset()
+```
+
+---
+
+## 💻 Hands-On Exercise
+
+### 🎯 Exercise: Train Bipedal Walking Policy
+
+**Difficulty**: ⭐⭐⭐ Advanced  
+**Time**: 120-180 minutes
+
+**Objective:** Train a robust walking policy for bipedal robot.
+
+**Tasks:**
+1. Set up BipedalWalker-v3 environment
+2. Implement reward shaping for stable gait
+3. Train PPO policy (1M steps)
+4. Visualize learning curves
+5. Test trained policy robustness
+
+**Reward Shaping Ideas:**
+```python
+def shaped_reward(state, action, next_state, reward):
+    """
+    Improve reward for better walking.
+    
+    Add bonuses for:
+    - Forward velocity (speed)
+    - Upright orientation (balance)
+    - Smooth actions (efficiency)
+    
+    Penalize:
+    - Large angular velocity (wobbling)
+    - High action magnitude (energy)
+    """
+    # Extract state features
+    hull_angle = state[0]
+    hull_angular_vel = state[1]
+    vel_x = state[2]
+    
+    # Bonuses
+    forward_bonus = vel_x * 0.5
+    upright_bonus = 1.0 - abs(hull_angle)
+    smooth_bonus = -0.01 * np.sum(action**2)
+    
+    # Penalties
+    wobble_penalty = -0.1 * abs(hull_angular_vel)
+    
+    # Combine
+    shaped = reward + forward_bonus + upright_bonus + smooth_bonus + wobble_penalty
+    
+    return shaped
+```
+
+**Success Criteria:**
+- ✅ Policy achieves score > 250
+- ✅ Walks forward consistently
+- ✅ Recovers from small pushes
+- ✅ Training converges in < 1M steps
+
+---
+
+## 🧠 Key Takeaways
+
+1. **PPO** is stable and sample efficient for robotics
+2. **Reward shaping** critical for good policies
+3. **Hyperparameters** (learning rate, clip ε) matter significantly
+4. **Sim-to-real gap** requires domain randomization
+5. **Model-based RL** improves sample efficiency
+
+---
+
+## 📚 Further Reading
+
+- **Paper**: "Proximal Policy Optimization Algorithms" (Schulman et al., 2017)
+- **Paper**: "Soft Actor-Critic" (Haarnoja et al., 2018)
+- **Course**: [Berkeley Deep RL Bootcamp](https://sites.google.com/view/deep-rl-bootcamp/)
+
+---
+
+## ➡️ Next Section
+
+**[4.1.3 — Sim-to-Real Transfer →](./03-sim-to-real)**
+
+Learn to deploy simulation-trained policies on real robots.
+
+---
+
+<ChatbotPlaceholder />

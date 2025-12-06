@@ -1,0 +1,54 @@
+{
+  "theme.navbar.title": {
+    "message": "فزیکل اے آئی اور ہیومنائیڈ روبوٹکس",
+    "description": "Title in navbar"
+  },
+  "theme.docs.sidebar.closeSidebarButtonAriaLabel": {
+    "message": "سائیڈبار بند کریں",
+    "description": "The ARIA label for close button of mobile sidebar"
+  },
+  "theme.docs.sidebar.toggleSidebarButtonAriaLabel": {
+    "message": "سائیڈبار ٹوگل کریں",
+    "description": "The ARIA label for hamburger menu button of mobile navigation"
+  },
+  "theme.navbar.mobileLanguageDropdown.label": {
+    "message": "زبانیں",
+    "description": "The label for the mobile language switcher dropdown"
+  },
+  "theme.SearchBar.label": {
+    "message": "تلاش کریں",
+    "description": "The ARIA label and placeholder for search button"
+  },
+  "theme.docs.paginator.previous": {
+    "message": "پچھلا",
+    "description": "The label used to navigate to the previous doc"
+  },
+  "theme.docs.paginator.next": {
+    "message": "اگلا",
+    "description": "The label used to navigate to the next doc"
+  },
+  "theme.docs.sidebar.collapseButtonTitle": {
+    "message": "سائیڈبار چھوٹا کریں",
+    "description": "The title attribute for collapse button of doc sidebar"
+  },
+  "theme.docs.sidebar.collapseButtonAriaLabel": {
+    "message": "سائیڈبار چھوٹا کریں",
+    "description": "The title attribute for collapse button of doc sidebar"
+  },
+  "theme.common.editThisPage": {
+    "message": "یہ صفحہ ایڈٹ کریں",
+    "description": "The link label to edit the current page"
+  },
+  "theme.colorToggle.ariaLabel": {
+    "message": "تاریک اور روشن موڈ کے درمیان سوئچ کریں",
+    "description": "The ARIA label for color mode toggle"
+  },
+  "theme.colorToggle.ariaLabel.mode.dark": {
+    "message": "تاریک موڈ",
+    "description": "The ARIA label for dark mode"
+  },
+  "theme.colorToggle.ariaLabel.mode.light": {
+    "message": "روشن موڈ",
+    "description": "The ARIA label for light mode"
+  }
+}

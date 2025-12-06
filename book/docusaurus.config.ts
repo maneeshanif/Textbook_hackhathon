@@ -74,6 +74,8 @@ const config: Config = {
     image: 'img/docusaurus-social-card.jpg',
     colorMode: {
       respectPrefersColorScheme: true,
+      defaultMode: 'light',
+      disableSwitch: false,
     },
     navbar: {
       title: 'Physical AI & Humanoid Robotics',
@@ -135,6 +137,7 @@ const config: Config = {
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.dracula,
+      additionalLanguages: ['python', 'bash', 'c', 'cpp', 'java', 'matlab', 'latex'],
     },
   } satisfies Preset.ThemeConfig,
 

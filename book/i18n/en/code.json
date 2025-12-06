@@ -1,0 +1,42 @@
+{
+  "difficulty.beginner": {
+    "message": "Beginner",
+    "description": "Difficulty level: beginner"
+  },
+  "difficulty.intermediate": {
+    "message": "Intermediate",
+    "description": "Difficulty level: intermediate"
+  },
+  "difficulty.advanced": {
+    "message": "Advanced",
+    "description": "Difficulty level: advanced"
+  },
+  "chatbot.comingSoon": {
+    "message": "AI Assistant coming soon!",
+    "description": "Coming soon message for chatbot placeholder"
+  },
+  "chatbot.clickToLearnMore": {
+    "message": "Click to learn more",
+    "description": "Tooltip for chatbot placeholder"
+  },
+  "chatbot.phase2Feature": {
+    "message": "This feature will be available in Phase 2. The AI assistant will help you:",
+    "description": "Description of chatbot as Phase 2 feature"
+  },
+  "chatbot.feature.questions": {
+    "message": "Answer questions about course content",
+    "description": "Chatbot feature: answer questions"
+  },
+  "chatbot.feature.explanations": {
+    "message": "Provide detailed explanations",
+    "description": "Chatbot feature: provide explanations"
+  },
+  "chatbot.feature.examples": {
+    "message": "Generate code examples",
+    "description": "Chatbot feature: generate examples"
+  },
+  "chatbot.feature.progress": {
+    "message": "Track your learning progress",
+    "description": "Chatbot feature: track progress"
+  }
+}

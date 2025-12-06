@@ -1,0 +1,229 @@
+---
+title: "2.2 — Locomotion & Gait Control"
+sidebar_label: "Week 9-10: Locomotion & Gait"
+sidebar_position: 2
+description: "Learn how humanoid robots walk, balance, and adapt to terrain through gait generation and control strategies"
+module: 2
+week: 9
+tags: [locomotion, gait, balance, walking, zmp, advanced]
+difficulty: advanced
+estimated_time: "8-10 hours"
+---
+
+:::info ترجمہ زیر التواء
+یہ صفحہ فی الحال انگریزی سے اردو میں ترجمہ کیا جا رہا ہے۔ مکمل مواد کے لیے براہ کرم انگریزی ورژن دیکھیں۔
+:::
+
+
+# 2.2 — Locomotion & Gait Control
+
+<DifficultyBadge level="intermediate" />
+
+> **Summary**: Master the techniques that enable bipedal robots to walk, run, and maintain balance on various terrains.
+
+## 🎯 Learning Objectives
+
+By the end of this section, you will be able to:
+- Distinguish between static and dynamic stability in bipedal locomotion
+- Generate walking gaits using trajectory optimization and CPG methods
+- Plan footsteps on flat and uneven terrain
+- Implement balance controllers using ZMP criterion
+- Apply push recovery strategies for disturbance rejection
+- Analyze and optimize energy efficiency in locomotion
+
+## 📋 Prerequisites
+
+- [2.1 — Kinematics & Dynamics](../week-6-8/) — FK, IK, dynamics fundamentals
+- Understanding of ZMP and balance criteria
+- Python with NumPy/SciPy for implementation
+- Basic control theory (PID, state feedback)
+
+## 📚 This Week's Content
+
+1. **[2.2.1 — Gait Generation](./01-gait-generation)** (3-4 hours)  
+   Walking patterns, CPGs, trajectory optimization, and gait parameters
+
+2. **[2.2.2 — Balance Control](./02-balance-control)** (3-4 hours)  
+   ZMP-based controllers, push recovery, and dynamic stability
+
+3. **[2.2.3 — Terrain Adaptation](./03-terrain-adaptation)** (2-3 hours)  
+   Footstep planning, uneven ground, stairs, and obstacle avoidance
+
+## 📖 Overview
+
+### The Bipedal Locomotion Challenge
+
+Walking on two legs is inherently unstable but offers advantages:
+- ✅ Navigate human environments (stairs, narrow spaces)
+- ✅ Use hands while moving
+- ✅ See over obstacles
+- ❌ Complex balance control required
+- ❌ Higher energy consumption than wheels
+- ❌ Slow recovery from disturbances
+
+### Stability Types
+
+**Static Stability**:
+- Center of Mass (CoM) always above support polygon
+- Can stop at any instant without falling
+- Slow, energy-inefficient
+- Example: ASIMO early walking (~0.5 m/s)
+
+**Dynamic Stability**:
+- CoM may leave support polygon momentarily
+- Cannot stop instantly (forward momentum)
+- Fast, more natural
+- Example: Boston Dynamics Atlas (~1.5 m/s)
+
+### Gait Cycle Overview
+
+```mermaid
+graph LR
+    A[Double Support] -->|Lift left foot| B[Right Single Support]
+    B -->|Left foot lands| C[Double Support]
+    C -->|Lift right foot| D[Left Single Support]
+    D -->|Right foot lands| A
+    
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#e1f5ff
+    style D fill:#ffe1e1
+```
+
+**Key Phases**:
+1. **Double Support** (~20% of cycle): Both feet on ground, stable
+2. **Single Support** (~80% of cycle): One foot on ground, dynamic
+3. **Heel Strike**: Foot contacts ground (impact)
+4. **Toe Off**: Foot leaves ground (swing begins)
+
+### Zero Moment Point (ZMP) Criterion
+
+**Definition**: Point on ground where horizontal moment = 0
+
+**Stability Condition**:
+- ZMP inside support polygon → Stable
+- ZMP on boundary → Marginally stable  
+- ZMP outside → Falling (rotation about foot edge)
+
+**Control Strategy**:
+- Plan CoM trajectory to keep ZMP inside support polygon
+- Use feedback to correct ZMP position
+- Adjust footstep location if ZMP deviates too much
+
+## 💻 Preview: Simple Walking Controller
+
+```python
+import numpy as np
+
+class SimpleWalkingController:
+    """Basic walking controller using ZMP criterion."""
+    
+    def __init__(self, step_length=0.2, step_height=0.05, step_time=0.8):
+        self.step_length = step_length  # meters
+        self.step_height = step_height  # meters
+        self.step_time = step_time      # seconds
+        
+    def generate_step_trajectory(self, t):
+        """
+        Generate foot trajectory for one step.
+        
+        Args:
+            t: Time in step cycle [0, step_time]
+        
+        Returns:
+            (x, y, z): Foot position at time t
+        """
+        # Normalize time [0, 1]
+        s = t / self.step_time
+        
+        # X: Linear progression
+        x = self.step_length * s
+        
+        # Y: No lateral movement
+        y = 0
+        
+        # Z: Parabolic arc (swing phase)
+        if s < 0.5:
+            # Lifting phase
+            z = 4 * self.step_height * s * (1 - 2*s)
+        else:
+            # Lowering phase
+            z = 4 * self.step_height * (s - 0.5) * (1 - s)
+        
+        return x, y, max(0, z)
+    
+    def compute_com_trajectory(self, support_foot_pos, swing_foot_pos):
+        """
+        Compute CoM trajectory that keeps ZMP stable.
+        
+        Simple approach: CoM shifts toward support foot.
+        """
+        # CoM should be slightly ahead of support foot
+        # for dynamic walking
+        com_x = support_foot_pos[0] + 0.05
+        com_y = support_foot_pos[1]
+        com_z = 0.85  # Hip height (typical for humanoid)
+        
+        return np.array([com_x, com_y, com_z])
+
+# Example usage
+controller = SimpleWalkingController()
+
+# Generate trajectory for one step
+time_points = np.linspace(0, 0.8, 100)
+trajectory = [controller.generate_step_trajectory(t) for t in time_points]
+
+print("Step trajectory generated:")
+print(f"  Start: {trajectory[0]}")
+print(f"  Mid: {trajectory[50]}")
+print(f"  End: {trajectory[-1]}")
+```
+
+## 🎓 Learning Strategy
+
+**Week 9**: Gait generation fundamentals
+- Understand gait cycle phases
+- Implement simple trajectory generation
+- Study CPG (Central Pattern Generator) methods
+- Optimize gait parameters for efficiency
+
+**Week 10**: Advanced balance and terrain
+- Implement ZMP-based balance controller
+- Add push recovery (ankle/hip strategies)
+- Plan footsteps on uneven terrain
+- Handle stairs and obstacles
+
+## 🔑 Key Concepts
+
+- **Gait**: Coordinated pattern of leg movements
+- **Support Polygon**: Convex hull of contact points with ground
+- **Center of Pressure (CoP)**: Point where ground reaction force acts
+- **ZMP**: CoP when flat foot contact is maintained
+- **Capture Point**: Where robot should step to stop falling
+- **CPG**: Biological-inspired oscillators for rhythm generation
+
+## ➡️ Get Started
+
+Begin with gait generation:
+
+**[2.2.1 — Gait Generation →](./01-gait-generation)**
+
+Learn how to create coordinated walking patterns that keep the robot balanced.
+
+---
+
+## 📚 Recommended Resources
+
+- **Papers**:
+  - "Biped Walking Pattern Generation by using Preview Control of ZMP" (Kajita et al., 2003)
+  - "Push Recovery by Stepping for Humanoid Robots" (Pratt et al., 2006)
+- **Videos**:
+  - [Boston Dynamics Atlas Walking](https://www.youtube.com/watch?v=LikxFZZO2sk)
+  - [ASIMO Gait Evolution](https://www.youtube.com/watch?v=ASoCJTYgYB0)
+- **Simulators**:
+  - PyBullet with humanoid models
+  - Gazebo with ROS for complex scenarios
+
+---
+
+<ChatbotPlaceholder />

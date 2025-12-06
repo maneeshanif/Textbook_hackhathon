@@ -1,0 +1,42 @@
+{
+  "difficulty.beginner": {
+    "message": "ابتدائی",
+    "description": "Difficulty level: beginner"
+  },
+  "difficulty.intermediate": {
+    "message": "درمیانہ",
+    "description": "Difficulty level: intermediate"
+  },
+  "difficulty.advanced": {
+    "message": "اعلیٰ",
+    "description": "Difficulty level: advanced"
+  },
+  "chatbot.comingSoon": {
+    "message": "اے آئی اسسٹنٹ جلد آ رہا ہے!",
+    "description": "Coming soon message for chatbot placeholder"
+  },
+  "chatbot.clickToLearnMore": {
+    "message": "مزید جاننے کے لیے کلک کریں",
+    "description": "Tooltip for chatbot placeholder"
+  },
+  "chatbot.phase2Feature": {
+    "message": "یہ خصوصیت فیز 2 میں دستیاب ہوگی۔ اے آئی اسسٹنٹ آپ کی مدد کرے گا:",
+    "description": "Description of chatbot as Phase 2 feature"
+  },
+  "chatbot.feature.questions": {
+    "message": "کورس کے مواد کے بارے میں سوالات کے جوابات دیں",
+    "description": "Chatbot feature: answer questions"
+  },
+  "chatbot.feature.explanations": {
+    "message": "تفصیلی وضاحتیں فراہم کریں",
+    "description": "Chatbot feature: provide explanations"
+  },
+  "chatbot.feature.examples": {
+    "message": "کوڈ کی مثالیں بنائیں",
+    "description": "Chatbot feature: generate examples"
+  },
+  "chatbot.feature.progress": {
+    "message": "آپ کی سیکھنے کی پیش رفت کو ٹریک کریں",
+    "description": "Chatbot feature: track progress"
+  }
+}

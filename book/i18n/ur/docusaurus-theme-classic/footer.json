@@ -1,0 +1,30 @@
+{
+  "link.title": {
+    "message": "دستاویزات",
+    "description": "The title of the footer links column with title=Docs in the footer"
+  },
+  "link.item.label.Book Chapters": {
+    "message": "کتاب کے ابواب",
+    "description": "The label of footer link with label=Book Chapters linking to /docs"
+  },
+  "link.title.Community": {
+    "message": "کمیونٹی",
+    "description": "The title of the footer links column with title=Community in the footer"
+  },
+  "link.item.label.GitHub": {
+    "message": "گٹ ہب",
+    "description": "The label of footer link with label=GitHub linking to https://github.com/maneeshanif/Textbook_hackhathon"
+  },
+  "link.title.More": {
+    "message": "مزید",
+    "description": "The title of the footer links column with title=More in the footer"
+  },
+  "link.item.label.GitHub Repository": {
+    "message": "گٹ ہب ریپوزیٹری",
+    "description": "The label of footer link with label=GitHub Repository linking to https://github.com/maneeshanif/Textbook_hackhathon"
+  },
+  "copyright": {
+    "message": "کاپی رائٹ © 2024 فزیکل اے آئی اور ہیومنائیڈ روبوٹکس ٹیکسٹ بک۔ Docusaurus کے ساتھ بنایا گیا۔",
+    "description": "The footer copyright"
+  }
+}

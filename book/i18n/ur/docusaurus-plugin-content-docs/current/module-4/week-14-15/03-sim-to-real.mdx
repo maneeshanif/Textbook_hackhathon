@@ -1,0 +1,610 @@
+---
+title: "4.1.3 — Sim-to-Real Transfer"
+sidebar_label: "4.1.3 — Sim-to-Real"
+sidebar_position: 3
+description: "Domain randomization, system identification, and deploying simulation-trained policies on real robots"
+module: 4
+week: 14
+section: 3
+tags: [sim-to-real, domain-randomization, transfer-learning, deployment, reality-gap]
+difficulty: advanced
+estimated_time: "3-4 hours"
+---
+
+:::info ترجمہ زیر التواء
+یہ صفحہ فی الحال انگریزی سے اردو میں ترجمہ کیا جا رہا ہے۔ مکمل مواد کے لیے براہ کرم انگریزی ورژن دیکھیں۔
+:::
+
+
+# 4.1.3 — Sim-to-Real Transfer
+
+<DifficultyBadge level="advanced" />
+
+> **Summary**: Bridge the reality gap — train policies in simulation and deploy them successfully on real hardware.
+
+## 🎯 Learning Objectives
+
+- Understand the sim-to-real gap
+- Implement domain randomization
+- Apply system identification
+- Fine-tune policies on real hardware
+- Deploy robust policies safely
+
+---
+
+## 📖 Theory: The Reality Gap
+
+### Why Simulation ≠ Reality
+
+**Physics Mismatch:**
+- Contact dynamics (friction, bouncing)
+- Actuator delays and dynamics
+- Sensor noise and latency
+- Unmodeled effects (cable drag, wear)
+
+**Visual Mismatch:**
+- Lighting conditions
+- Textures and materials
+- Camera calibration errors
+
+**Consequence:** Policies trained in simulation often fail on real robots.
+
+### Sim-to-Real Strategies
+
+| Approach | Training Time | Real Data | Success Rate | Use Case |
+|----------|--------------|-----------|--------------|----------|
+| **Direct Transfer** | Fast | None | Low | Simple tasks |
+| **Domain Randomization** | Fast | None | Medium | Robust policies |
+| **System ID** | Medium | Minimal | High | Accurate sim |
+| **Fine-tuning** | Medium | Moderate | Very High | Performance |
+| **Meta-learning** | Slow | Extensive | Very High | Adaptation |
+
+---
+
+## 🎯 Part 1: Domain Randomization
+
+### Core Idea
+
+**Train on diverse simulations → Policy learns invariant features → Robust to reality**
+
+**Randomize:**
+1. **Physics**: Mass, friction, damping, joint limits
+2. **Actuation**: Motor gains, delays, noise
+3. **Sensing**: Sensor noise, dropouts, calibration
+4. **Visual**: Lighting, textures, camera parameters
+5. **Environment**: Terrain, obstacles, wind
+
+**Mathematics:**
+Sample parameters from distributions:
+$$
+\theta_{\text{sim}} \sim p(\theta)
+$$
+
+Policy trained over distribution:
+$$
+\pi^* = \arg\max_\pi \mathbb{E}_{\theta \sim p(\theta)} [J(\pi, \theta)]
+$$
+
+### Implementation: Domain Randomization
+
+```python
+import numpy as np
+import pybullet as p
+import pybullet_data
+
+class DomainRandomization:
+    """Domain randomization for sim-to-real transfer."""
+    
+    def __init__(self, robot_id, client_id):
+        self.robot_id = robot_id
+        self.client_id = client_id
+        
+        # Store original parameters
+        self.original_params = self.save_parameters()
+        
+        # Randomization ranges
+        self.mass_range = (0.8, 1.2)          # ±20%
+        self.friction_range = (0.5, 1.5)      # ±50%
+        self.damping_range = (0.5, 2.0)       # ±100%
+        self.motor_gain_range = (0.9, 1.1)    # ±10%
+        self.delay_range = (0.0, 0.01)        # 0-10ms
+        
+        # Visual randomization
+        self.light_range = (0.5, 2.0)
+        self.texture_count = 5
+    
+    def save_parameters(self):
+        """Save original robot parameters."""
+        params = {}
+        
+        num_joints = p.getNumJoints(self.robot_id, physicsClientId=self.client_id)
+        
+        for joint_idx in range(num_joints):
+            info = p.getDynamicsInfo(self.robot_id, joint_idx, 
+                                    physicsClientId=self.client_id)
+            params[joint_idx] = {
+                'mass': info[0],
+                'lateral_friction': info[1],
+                'damping': info[6]
+            }
+        
+        return params
+    
+    def randomize_physics(self):
+        """Randomize physical parameters."""
+        num_joints = p.getNumJoints(self.robot_id, physicsClientId=self.client_id)
+        
+        for joint_idx in range(num_joints):
+            orig = self.original_params[joint_idx]
+            
+            # Randomize mass
+            mass_scale = np.random.uniform(*self.mass_range)
+            new_mass = orig['mass'] * mass_scale
+            
+            # Randomize friction
+            friction_scale = np.random.uniform(*self.friction_range)
+            new_friction = orig['lateral_friction'] * friction_scale
+            
+            # Randomize damping
+            damping_scale = np.random.uniform(*self.damping_range)
+            new_damping = orig['damping'] * damping_scale
+            
+            # Apply
+            p.changeDynamics(
+                self.robot_id,
+                joint_idx,
+                mass=new_mass,
+                lateralFriction=new_friction,
+                jointDamping=new_damping,
+                physicsClientId=self.client_id
+            )
+    
+    def randomize_actuators(self):
+        """Randomize actuator properties."""
+        # Motor gain randomization
+        self.motor_gain = np.random.uniform(*self.motor_gain_range, 
+                                           size=p.getNumJoints(self.robot_id))
+        
+        # Actuator delay
+        self.actuator_delay = np.random.uniform(*self.delay_range)
+        
+        return self.motor_gain, self.actuator_delay
+    
+    def add_sensor_noise(self, sensor_reading, noise_std=0.01):
+        """Add noise to sensor readings."""
+        noise = np.random.normal(0, noise_std, size=sensor_reading.shape)
+        return sensor_reading + noise
+    
+    def randomize_visual(self):
+        """Randomize visual appearance."""
+        # Light intensity
+        light_intensity = np.random.uniform(*self.light_range)
+        
+        # Random texture
+        texture_id = np.random.randint(0, self.texture_count)
+        
+        # In real implementation, would apply to scene
+        return light_intensity, texture_id
+    
+    def randomize_all(self):
+        """Apply all randomizations."""
+        self.randomize_physics()
+        motor_gain, delay = self.randomize_actuators()
+        light, texture = self.randomize_visual()
+        
+        return {
+            'motor_gain': motor_gain,
+            'delay': delay,
+            'light': light,
+            'texture': texture
+        }
+
+
+# Example: Training with DR
+class DRTrainingWrapper:
+    """Wrap environment with domain randomization."""
+    
+    def __init__(self, base_env):
+        self.env = base_env
+        self.dr = None  # Initialize after env reset
+        self.randomize_every = 1  # Randomize every episode
+        self.episode_count = 0
+    
+    def reset(self):
+        """Reset with randomization."""
+        obs, info = self.env.reset()
+        
+        # Initialize DR (once robot is loaded)
+        if self.dr is None and hasattr(self.env, 'robot_id'):
+            self.dr = DomainRandomization(
+                self.env.robot_id,
+                self.env.client_id
+            )
+        
+        # Randomize if needed
+        if self.dr and self.episode_count % self.randomize_every == 0:
+            params = self.dr.randomize_all()
+            info['randomization'] = params
+        
+        self.episode_count += 1
+        return obs, info
+    
+    def step(self, action):
+        """Step with actuator randomization."""
+        # Apply motor gain (if DR active)
+        if self.dr:
+            action_scaled = action * self.dr.motor_gain
+        else:
+            action_scaled = action
+        
+        # Environment step
+        obs, reward, terminated, truncated, info = self.env.step(action_scaled)
+        
+        # Add sensor noise
+        if self.dr:
+            obs = self.dr.add_sensor_noise(obs, noise_std=0.01)
+        
+        return obs, reward, terminated, truncated, info
+
+
+# Usage with PPO
+if __name__ == '__main__':
+    import gymnasium as gym
+    
+    # Base environment
+    base_env = gym.make('BipedalWalker-v3')
+    
+    # Wrap with DR
+    dr_env = DRTrainingWrapper(base_env)
+    
+    # Train policy with domain randomization
+    from stable_baselines3 import PPO
+    
+    model = PPO('MlpPolicy', dr_env, verbose=1)
+    
+    print("Training with Domain Randomization...")
+    model.learn(total_timesteps=1_000_000)
+    
+    model.save('ppo_dr_policy')
+    print("Policy trained with DR!")
+```
+
+---
+
+## 🎯 Part 2: System Identification
+
+### Accurate Simulation
+
+**Goal:** Make simulation match reality as closely as possible.
+
+**Process:**
+1. **Measure** real robot parameters
+2. **Fit** simulation parameters
+3. **Validate** with test trajectories
+4. **Iterate** until error is minimized
+
+**Parameters to Identify:**
+- Link masses and inertias
+- Joint friction and damping
+- Motor constants ($K_t$, $K_e$)
+- Sensor calibration
+
+### Implementation: System ID
+
+```python
+from scipy.optimize import minimize
+
+class SystemIdentification:
+    """Identify robot parameters from real data."""
+    
+    def __init__(self, nominal_params):
+        self.nominal = nominal_params
+        self.identified = nominal_params.copy()
+    
+    def collect_trajectory(self, robot, commands, duration=5.0, dt=0.01):
+        """
+        Collect trajectory from real robot.
+        
+        Args:
+            robot: Real robot interface
+            commands: Sequence of joint commands
+            duration: Trajectory duration (s)
+            dt: Sampling period (s)
+        
+        Returns:
+            times, positions, velocities, torques
+        """
+        times = []
+        positions = []
+        velocities = []
+        torques = []
+        
+        t = 0.0
+        while t < duration:
+            # Get command
+            cmd_idx = min(int(t / dt), len(commands) - 1)
+            cmd = commands[cmd_idx]
+            
+            # Send command
+            robot.set_joint_torques(cmd)
+            
+            # Measure
+            pos = robot.get_joint_positions()
+            vel = robot.get_joint_velocities()
+            tau = robot.get_joint_torques()
+            
+            times.append(t)
+            positions.append(pos)
+            velocities.append(vel)
+            torques.append(tau)
+            
+            t += dt
+        
+        return np.array(times), np.array(positions), np.array(velocities), np.array(torques)
+    
+    def simulate_trajectory(self, params, commands, times):
+        """Simulate trajectory with given parameters."""
+        # Simplified simulation (in practice, use full physics)
+        positions_sim = []
+        velocities_sim = []
+        
+        pos = np.zeros(len(params['mass']))
+        vel = np.zeros(len(params['mass']))
+        
+        for i, cmd in enumerate(commands):
+            # Dynamics: J*ddq + B*dq = tau
+            accel = (cmd - params['damping'] * vel) / params['mass']
+            
+            vel += accel * (times[min(i+1, len(times)-1)] - times[i])
+            pos += vel * (times[min(i+1, len(times)-1)] - times[i])
+            
+            positions_sim.append(pos.copy())
+            velocities_sim.append(vel.copy())
+        
+        return np.array(positions_sim), np.array(velocities_sim)
+    
+    def objective(self, param_vector, real_data, commands, times):
+        """
+        Objective function for optimization.
+        
+        Minimize: ||pos_real - pos_sim||² + ||vel_real - vel_sim||²
+        """
+        # Unpack parameters
+        params = {
+            'mass': param_vector[:len(param_vector)//2],
+            'damping': param_vector[len(param_vector)//2:]
+        }
+        
+        # Simulate
+        pos_sim, vel_sim = self.simulate_trajectory(params, commands, times)
+        
+        # Error
+        pos_error = np.mean((real_data['positions'] - pos_sim)**2)
+        vel_error = np.mean((real_data['velocities'] - vel_sim)**2)
+        
+        return pos_error + vel_error
+    
+    def identify(self, real_trajectory, commands):
+        """Identify parameters from real trajectory."""
+        times, pos_real, vel_real, tau_real = real_trajectory
+        
+        real_data = {
+            'positions': pos_real,
+            'velocities': vel_real
+        }
+        
+        # Initial guess
+        x0 = np.concatenate([self.nominal['mass'], self.nominal['damping']])
+        
+        # Optimize
+        print("Identifying parameters...")
+        result = minimize(
+            self.objective,
+            x0,
+            args=(real_data, commands, times),
+            method='L-BFGS-B',
+            bounds=[(m*0.5, m*1.5) for m in x0]  # ±50% bounds
+        )
+        
+        # Extract identified parameters
+        n = len(result.x) // 2
+        self.identified = {
+            'mass': result.x[:n],
+            'damping': result.x[n:]
+        }
+        
+        print(f"Identification complete. Error: {result.fun:.6f}")
+        print(f"Mass: {self.identified['mass']}")
+        print(f"Damping: {self.identified['damping']}")
+        
+        return self.identified
+
+
+# Example usage
+if __name__ == '__main__':
+    # Nominal parameters
+    nominal = {
+        'mass': np.array([1.0, 0.5, 0.3]),
+        'damping': np.array([0.1, 0.05, 0.03])
+    }
+    
+    sysid = SystemIdentification(nominal)
+    
+    # Simulated "real" data (in practice, from actual robot)
+    times = np.linspace(0, 5, 500)
+    commands = np.sin(times[:, None] * np.array([1.0, 2.0, 3.0])) * 10  # Torque commands
+    
+    # True parameters (unknown to algorithm)
+    true_params = {
+        'mass': np.array([1.2, 0.6, 0.35]),
+        'damping': np.array([0.12, 0.06, 0.035])
+    }
+    pos_real, vel_real = sysid.simulate_trajectory(true_params, commands, times)
+    
+    real_trajectory = (times, pos_real, vel_real, commands)
+    
+    # Identify
+    identified = sysid.identify(real_trajectory, commands)
+    
+    print("\nTrue vs Identified:")
+    print(f"Mass: {true_params['mass']} vs {identified['mass']}")
+    print(f"Damping: {true_params['damping']} vs {identified['damping']}")
+```
+
+---
+
+## 🎯 Part 3: Deployment Strategies
+
+### Safe Deployment
+
+**Progressive Rollout:**
+1. **Simulation validation**: 1000+ episodes
+2. **Constrained testing**: Limited workspace, soft landing
+3. **Gradual expansion**: Increase task complexity
+4. **Real-world monitoring**: E-stop, safety checks
+
+### Fine-Tuning on Real Robot
+
+**Hybrid Approach:**
+- Pre-train in simulation (1M steps)
+- Fine-tune on real robot (10K steps)
+- Use conservative policy for safety
+
+```python
+class SafeDeployment:
+    """Safe policy deployment on real hardware."""
+    
+    def __init__(self, policy, safety_limits):
+        self.policy = policy
+        self.limits = safety_limits
+        
+        # Safety monitoring
+        self.max_joint_vel = safety_limits['max_joint_vel']
+        self.max_torque = safety_limits['max_torque']
+        self.workspace_bounds = safety_limits['workspace']
+        
+        # Emergency stop
+        self.estop = False
+    
+    def check_safety(self, state, action):
+        """Check if state/action is safe."""
+        # Joint velocity limits
+        joint_vel = state['joint_velocities']
+        if np.any(np.abs(joint_vel) > self.max_joint_vel):
+            return False, "Joint velocity exceeded"
+        
+        # Torque limits
+        if np.any(np.abs(action) > self.max_torque):
+            return False, "Torque limit exceeded"
+        
+        # Workspace bounds
+        ee_pos = state['end_effector_position']
+        if not self._in_workspace(ee_pos):
+            return False, "Outside workspace"
+        
+        return True, "OK"
+    
+    def _in_workspace(self, position):
+        """Check if position is in safe workspace."""
+        x, y, z = position
+        bounds = self.workspace_bounds
+        
+        return (bounds['x_min'] <= x <= bounds['x_max'] and
+                bounds['y_min'] <= y <= bounds['y_max'] and
+                bounds['z_min'] <= z <= bounds['z_max'])
+    
+    def execute(self, state):
+        """Execute policy with safety checks."""
+        if self.estop:
+            return np.zeros(len(state['joint_positions']))  # Zero torques
+        
+        # Get policy action
+        action = self.policy.predict(state)
+        
+        # Safety check
+        safe, reason = self.check_safety(state, action)
+        
+        if not safe:
+            print(f"SAFETY VIOLATION: {reason}")
+            self.estop = True
+            return np.zeros(len(action))
+        
+        return action
+
+
+# Example: Real robot deployment
+if __name__ == '__main__':
+    import torch
+    
+    # Load trained policy
+    policy = torch.load('ppo_dr_policy.pth')
+    
+    # Safety limits
+    limits = {
+        'max_joint_vel': 10.0,  # rad/s
+        'max_torque': 50.0,     # Nm
+        'workspace': {
+            'x_min': -0.5, 'x_max': 0.5,
+            'y_min': -0.5, 'y_max': 0.5,
+            'z_min': 0.0,  'z_max': 1.0
+        }
+    }
+    
+    safe_policy = SafeDeployment(policy, limits)
+    
+    print("Policy deployed with safety monitoring.")
+```
+
+---
+
+## 💻 Hands-On Exercise
+
+### 🎯 Exercise: Sim-to-Real for Manipulation
+
+**Difficulty**: ⭐⭐⭐ Advanced  
+**Time**: 120 minutes
+
+**Objective:** Train grasping policy in simulation and deploy to real robot (simulated).
+
+**Tasks:**
+1. Train policy with domain randomization
+2. Perform system identification
+3. Update simulation with identified parameters
+4. Fine-tune policy
+5. Deploy with safety checks
+
+**Success Criteria:**
+- ✅ Policy trained in < 500K steps
+- ✅ System ID error < 10%
+- ✅ Real robot success rate > 80%
+- ✅ No safety violations during deployment
+
+---
+
+## 🧠 Key Takeaways
+
+1. **Domain randomization** creates robust policies
+2. **System identification** improves sim accuracy
+3. **Progressive deployment** ensures safety
+4. **Fine-tuning** bridges remaining gap
+5. **Safety monitoring** is essential for real robots
+
+---
+
+## 📚 Further Reading
+
+- **Paper**: "Sim-to-Real Transfer of Robotic Control with Dynamics Randomization" (OpenAI, 2017)
+- **Paper**: "Learning Dexterous In-Hand Manipulation" (OpenAI, 2019)
+- **Blog**: [OpenAI Rubik's Cube](https://openai.com/research/solving-rubiks-cube)
+
+---
+
+## ➡️ Next Section
+
+**[4.1.4 — Real-World Applications →](./04-applications)**
+
+Explore successful deployments and case studies.
+
+---
+
+<ChatbotPlaceholder />

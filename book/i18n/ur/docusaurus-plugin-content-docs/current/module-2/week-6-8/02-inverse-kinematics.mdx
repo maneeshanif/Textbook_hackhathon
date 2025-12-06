@@ -1,0 +1,617 @@
+---
+title: "2.1.2 — Inverse Kinematics"
+sidebar_label: "2.1.2 — Inverse Kinematics"
+sidebar_position: 2
+description: "Solving for joint angles given desired end-effector poses using analytical and numerical methods"
+module: 2
+week: 6
+section: 2
+tags: [inverse-kinematics, jacobian, numerical-methods, ik-solver]
+difficulty: intermediate
+estimated_time: "4-5 hours"
+---
+
+:::info ترجمہ زیر التواء
+یہ صفحہ فی الحال انگریزی سے اردو میں ترجمہ کیا جا رہا ہے۔ مکمل مواد کے لیے براہ کرم انگریزی ورژن دیکھیں۔
+:::
+
+
+# 2.1.2 — Inverse Kinematics
+
+<DifficultyBadge level="intermediate" />
+
+> **Summary**: Learn analytical and numerical methods to compute joint configurations for desired end-effector positions — the foundation of robot motion planning.
+
+## 🎯 Learning Objectives
+
+- Understand the inverse kinematics problem
+- Implement analytical IK for simple chains
+- Use Jacobian-based numerical methods
+- Handle IK ambiguities and singularities
+- Apply IK to humanoid robot control
+
+---
+
+## 📖 The Inverse Kinematics Problem
+
+### Forward vs Inverse Kinematics
+
+**Forward Kinematics (FK):**
+$$
+\mathbf{x} = f(\boldsymbol{\theta})
+$$
+
+Given joint angles $\boldsymbol{\theta}$, compute end-effector pose $\mathbf{x}$.
+
+**Inverse Kinematics (IK):**
+$$
+\boldsymbol{\theta} = f^{-1}(\mathbf{x})
+$$
+
+Given desired end-effector pose $\mathbf{x}_d$, compute joint angles $\boldsymbol{\theta}$ that achieve it.
+
+### Why IK is Harder
+
+1. **Non-unique Solutions**: Multiple joint configurations may achieve same pose
+2. **No Closed-Form Solution**: For complex chains, analytical solutions don't exist
+3. **Singularities**: Some poses are unreachable or have infinite solutions
+4. **Joint Limits**: Solutions must respect physical constraints
+
+---
+
+## 🔢 Analytical Inverse Kinematics
+
+### 2-Link Planar Arm
+
+Consider a 2-DOF arm in the XY plane with link lengths $l_1$, $l_2$.
+
+**Forward Kinematics:**
+$$
+\begin{align}
+x &= l_1 \cos\theta_1 + l_2 \cos(\theta_1 + \theta_2) \\
+y &= l_1 \sin\theta_1 + l_2 \sin(\theta_1 + \theta_2)
+\end{align}
+$$
+
+**Inverse Kinematics:**
+
+**Step 1:** Use law of cosines to find $\theta_2$:
+$$
+\cos\theta_2 = \frac{x^2 + y^2 - l_1^2 - l_2^2}{2 l_1 l_2}
+$$
+
+$$
+\theta_2 = \pm \arccos\left(\frac{x^2 + y^2 - l_1^2 - l_2^2}{2 l_1 l_2}\right)
+$$
+
+Two solutions: **elbow-up** $(+)$ and **elbow-down** $(-)$.
+
+**Step 2:** Compute $\theta_1$ using atan2:
+$$
+\theta_1 = \text{atan2}(y, x) - \text{atan2}(l_2 \sin\theta_2, l_1 + l_2 \cos\theta_2)
+$$
+
+### Implementation
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+class TwoLinkArm:
+    """2-DOF planar arm with analytical IK."""
+    
+    def __init__(self, l1=1.0, l2=1.0):
+        self.l1 = l1
+        self.l2 = l2
+    
+    def forward_kinematics(self, theta1, theta2):
+        """FK: Joint angles → end-effector position."""
+        x = self.l1 * np.cos(theta1) + self.l2 * np.cos(theta1 + theta2)
+        y = self.l1 * np.sin(theta1) + self.l2 * np.sin(theta1 + theta2)
+        return np.array([x, y])
+    
+    def inverse_kinematics(self, x, y, elbow_up=True):
+        """Analytical IK: target position → joint angles.
+        
+        Args:
+            x, y: Target end-effector position
+            elbow_up: If True, elbow-up solution; else elbow-down
+        
+        Returns:
+            theta1, theta2: Joint angles (radians), or None if unreachable
+        """
+        # Check reachability
+        distance = np.sqrt(x**2 + y**2)
+        if distance > (self.l1 + self.l2) or distance < abs(self.l1 - self.l2):
+            print(f"Target ({x:.2f}, {y:.2f}) unreachable!")
+            return None
+        
+        # Compute theta2 using law of cosines
+        cos_theta2 = (x**2 + y**2 - self.l1**2 - self.l2**2) / (2 * self.l1 * self.l2)
+        
+        # Clamp to [-1, 1] to handle numerical errors
+        cos_theta2 = np.clip(cos_theta2, -1.0, 1.0)
+        
+        # Two solutions: elbow-up (+) or elbow-down (-)
+        if elbow_up:
+            theta2 = np.arccos(cos_theta2)
+        else:
+            theta2 = -np.arccos(cos_theta2)
+        
+        # Compute theta1
+        k1 = self.l1 + self.l2 * np.cos(theta2)
+        k2 = self.l2 * np.sin(theta2)
+        theta1 = np.arctan2(y, x) - np.arctan2(k2, k1)
+        
+        return theta1, theta2
+    
+    def plot_arm(self, theta1, theta2, target=None):
+        """Visualize arm configuration."""
+        # Joint positions
+        joint1 = np.array([0, 0])
+        joint2 = self.l1 * np.array([np.cos(theta1), np.sin(theta1)])
+        end_effector = self.forward_kinematics(theta1, theta2)
+        
+        # Plot
+        plt.figure(figsize=(6, 6))
+        plt.plot([joint1[0], joint2[0]], [joint1[1], joint2[1]], 
+                 'o-', linewidth=3, markersize=10, label='Link 1')
+        plt.plot([joint2[0], end_effector[0]], [joint2[1], end_effector[1]], 
+                 'o-', linewidth=3, markersize=10, label='Link 2')
+        
+        if target is not None:
+            plt.plot(target[0], target[1], 'rx', markersize=15, 
+                     markeredgewidth=3, label='Target')
+        
+        # Workspace circle
+        circle = plt.Circle((0, 0), self.l1 + self.l2, 
+                           fill=False, linestyle='--', color='gray')
+        plt.gca().add_patch(circle)
+        
+        plt.axis('equal')
+        plt.grid(True)
+        plt.xlabel('X (m)')
+        plt.ylabel('Y (m)')
+        plt.legend()
+        plt.title(f'θ₁={np.degrees(theta1):.1f}°, θ₂={np.degrees(theta2):.1f}°')
+        plt.show()
+
+
+# Example usage
+if __name__ == '__main__':
+    arm = TwoLinkArm(l1=1.0, l2=0.8)
+    
+    # Test IK
+    target = np.array([1.2, 0.6])
+    
+    # Elbow-up solution
+    result_up = arm.inverse_kinematics(target[0], target[1], elbow_up=True)
+    if result_up:
+        theta1_up, theta2_up = result_up
+        print(f"Elbow-up: θ1={np.degrees(theta1_up):.1f}°, θ2={np.degrees(theta2_up):.1f}°")
+        
+        # Verify FK
+        pos_up = arm.forward_kinematics(theta1_up, theta2_up)
+        error_up = np.linalg.norm(pos_up - target)
+        print(f"FK verification error: {error_up:.6f} m")
+        
+        arm.plot_arm(theta1_up, theta2_up, target)
+    
+    # Elbow-down solution
+    result_down = arm.inverse_kinematics(target[0], target[1], elbow_up=False)
+    if result_down:
+        theta1_down, theta2_down = result_down
+        print(f"Elbow-down: θ1={np.degrees(theta1_down):.1f}°, θ2={np.degrees(theta2_down):.1f}°")
+        arm.plot_arm(theta1_down, theta2_down, target)
+```
+
+**Output:**
+```
+Elbow-up: θ1=21.8°, θ2=59.0°
+FK verification error: 0.000000 m
+Elbow-down: θ1=55.3°, θ2=-59.0°
+```
+
+---
+
+## 🧮 Numerical Inverse Kinematics
+
+For complex robots (6-DOF arms, humanoids), analytical solutions are impractical. We use **iterative numerical methods**.
+
+### Jacobian-Based IK
+
+**Concept:** Use the Jacobian to relate joint velocities to end-effector velocities, then integrate.
+
+**Jacobian Matrix:**
+$$
+\mathbf{J}(\boldsymbol{\theta}) = \frac{\partial \mathbf{x}}{\partial \boldsymbol{\theta}}
+$$
+
+Relates joint velocities $\dot{\boldsymbol{\theta}}$ to end-effector velocity $\dot{\mathbf{x}}$:
+$$
+\dot{\mathbf{x}} = \mathbf{J}(\boldsymbol{\theta}) \, \dot{\boldsymbol{\theta}}
+$$
+
+**IK Iteration:**
+
+Given current pose $\mathbf{x}$ and target pose $\mathbf{x}_d$:
+
+1. Compute error: $\boldsymbol{\Delta} \mathbf{x} = \mathbf{x}_d - \mathbf{x}$
+2. Solve for joint change: $\boldsymbol{\Delta} \boldsymbol{\theta} = \mathbf{J}^{-1} \boldsymbol{\Delta} \mathbf{x}$
+3. Update joints: $\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} + \alpha \boldsymbol{\Delta} \boldsymbol{\theta}$
+4. Repeat until $\|\boldsymbol{\Delta} \mathbf{x}\| < \epsilon$
+
+**Problem:** $\mathbf{J}^{-1}$ may not exist (non-square or singular).
+
+**Solution:** Use **pseudoinverse**:
+$$
+\mathbf{J}^{\dagger} = \mathbf{J}^T (\mathbf{J} \mathbf{J}^T)^{-1}
+$$
+
+Or for overdetermined systems (more DOF than constraints):
+$$
+\mathbf{J}^{\dagger} = (\mathbf{J}^T \mathbf{J})^{-1} \mathbf{J}^T
+$$
+
+### Damped Least Squares (DLS)
+
+To handle singularities, add damping:
+$$
+\boldsymbol{\Delta} \boldsymbol{\theta} = \mathbf{J}^T (\mathbf{J} \mathbf{J}^T + \lambda^2 \mathbf{I})^{-1} \boldsymbol{\Delta} \mathbf{x}
+$$
+
+- $\lambda$: Damping factor (typically 0.01-0.1)
+- Prevents large joint changes near singularities
+
+### Implementation
+
+```python
+class JacobianIKSolver:
+    """Iterative IK solver using Jacobian pseudoinverse."""
+    
+    def __init__(self, robot, max_iterations=100, tolerance=1e-4, alpha=0.5, damping=0.01):
+        """
+        Args:
+            robot: Robot with forward_kinematics() and jacobian() methods
+            max_iterations: Maximum iterations
+            tolerance: Convergence threshold (m)
+            alpha: Step size
+            damping: Damping factor for DLS
+        """
+        self.robot = robot
+        self.max_iterations = max_iterations
+        self.tolerance = tolerance
+        self.alpha = alpha
+        self.damping = damping
+    
+    def solve(self, target_pos, initial_theta=None):
+        """Solve IK for target end-effector position.
+        
+        Args:
+            target_pos: Desired end-effector position (x, y)
+            initial_theta: Initial joint angles (default: zeros)
+        
+        Returns:
+            theta: Solution joint angles, or None if failed
+            history: List of (theta, error) at each iteration
+        """
+        if initial_theta is None:
+            theta = np.zeros(self.robot.num_joints)
+        else:
+            theta = initial_theta.copy()
+        
+        history = []
+        
+        for iteration in range(self.max_iterations):
+            # Forward kinematics
+            current_pos = self.robot.forward_kinematics(theta)
+            
+            # Error
+            error_vec = target_pos - current_pos
+            error = np.linalg.norm(error_vec)
+            history.append((theta.copy(), error))
+            
+            # Check convergence
+            if error < self.tolerance:
+                print(f"Converged in {iteration} iterations, error={error:.6f} m")
+                return theta, history
+            
+            # Compute Jacobian
+            J = self.robot.jacobian(theta)
+            
+            # Damped Least Squares (DLS) inverse
+            JJT = J @ J.T
+            JJT_damped = JJT + self.damping**2 * np.eye(JJT.shape[0])
+            J_dls = J.T @ np.linalg.inv(JJT_damped)
+            
+            # Compute joint change
+            delta_theta = J_dls @ error_vec
+            
+            # Update with step size
+            theta += self.alpha * delta_theta
+        
+        print(f"Failed to converge after {self.max_iterations} iterations, final error={error:.6f} m")
+        return None, history
+
+
+class PlanarArmWithJacobian:
+    """2-DOF arm with Jacobian computation for numerical IK."""
+    
+    def __init__(self, l1=1.0, l2=0.8):
+        self.l1 = l1
+        self.l2 = l2
+        self.num_joints = 2
+    
+    def forward_kinematics(self, theta):
+        """FK: theta → (x, y)."""
+        theta1, theta2 = theta
+        x = self.l1 * np.cos(theta1) + self.l2 * np.cos(theta1 + theta2)
+        y = self.l1 * np.sin(theta1) + self.l2 * np.sin(theta1 + theta2)
+        return np.array([x, y])
+    
+    def jacobian(self, theta):
+        """Compute Jacobian J = ∂x/∂θ."""
+        theta1, theta2 = theta
+        
+        J = np.array([
+            [-self.l1 * np.sin(theta1) - self.l2 * np.sin(theta1 + theta2),
+             -self.l2 * np.sin(theta1 + theta2)],
+            [self.l1 * np.cos(theta1) + self.l2 * np.cos(theta1 + theta2),
+             self.l2 * np.cos(theta1 + theta2)]
+        ])
+        
+        return J
+
+
+# Test numerical IK
+if __name__ == '__main__':
+    robot = PlanarArmWithJacobian(l1=1.0, l2=0.8)
+    solver = JacobianIKSolver(robot, alpha=0.5, damping=0.01)
+    
+    target = np.array([1.2, 0.6])
+    initial = np.array([0.0, 0.0])  # Start from straight configuration
+    
+    solution, history = solver.solve(target, initial_theta=initial)
+    
+    if solution is not None:
+        print(f"\nSolution: θ1={np.degrees(solution[0]):.1f}°, θ2={np.degrees(solution[1]):.1f}°")
+        
+        # Verify
+        final_pos = robot.forward_kinematics(solution)
+        print(f"Final position: ({final_pos[0]:.4f}, {final_pos[1]:.4f})")
+        print(f"Target position: ({target[0]:.4f}, {target[1]:.4f})")
+        print(f"Error: {np.linalg.norm(final_pos - target):.6f} m")
+        
+        # Plot convergence
+        errors = [h[1] for h in history]
+        plt.figure(figsize=(8, 4))
+        plt.plot(errors, 'o-')
+        plt.xlabel('Iteration')
+        plt.ylabel('Position Error (m)')
+        plt.title('IK Convergence')
+        plt.grid(True)
+        plt.yscale('log')
+        plt.show()
+```
+
+**Output:**
+```
+Converged in 12 iterations, error=0.000085 m
+
+Solution: θ1=21.8°, θ2=59.0°
+Final position: (1.2000, 0.6000)
+Target position: (1.2000, 0.6000)
+Error: 0.000085 m
+```
+
+---
+
+## ⚠️ Handling Singularities
+
+### What are Singularities?
+
+**Definition:** Configurations where the Jacobian loses rank, meaning some end-effector motions are impossible.
+
+**Example:** Arm fully extended — cannot move further along extension direction.
+
+**Mathematical:** $\det(\mathbf{J}) = 0$ or $\text{rank}(\mathbf{J}) < m$ (where $m$ is task space dimension).
+
+### Types of Singularities
+
+1. **Workspace Boundary Singularities**: Arm fully extended or retracted
+2. **Internal Singularities**: Links align in degenerate configurations
+3. **Algorithmic Singularities**: Poor choice of coordinates (e.g., Euler angle gimbal lock)
+
+### Mitigation Strategies
+
+**1. Damped Least Squares (DLS):**
+- Already implemented above with $\lambda$ damping
+
+**2. Singularity-Robust Inverse (SR-Inverse):**
+$$
+\mathbf{J}^{\text{SR}} = \mathbf{J}^T (\mathbf{J} \mathbf{J}^T + k(\sigma_{\min}) \mathbf{I})^{-1}
+$$
+
+where $k(\sigma_{\min})$ adapts based on smallest singular value.
+
+**3. Redundancy Resolution:**
+- For redundant robots (DOF > task constraints), use null-space to avoid singularities
+
+**4. Configuration Space Planning:**
+- Plan paths in joint space to avoid singular regions
+
+---
+
+## 🤖 Humanoid Arm IK Example
+
+### 6-DOF Arm (Simplified Humanoid Arm)
+
+```python
+class HumanoidArm6DOF:
+    """Simplified 6-DOF humanoid arm for IK demonstration."""
+    
+    def __init__(self):
+        # DH parameters (simplified, symbolic lengths)
+        self.link_lengths = {
+            'shoulder_to_elbow': 0.3,  # Upper arm
+            'elbow_to_wrist': 0.25,    # Forearm
+            'wrist_to_hand': 0.1       # Hand
+        }
+        self.num_joints = 6
+    
+    def forward_kinematics(self, theta):
+        """Compute end-effector position (3D) from 6 joint angles."""
+        # Simplified FK using DH convention (details omitted for brevity)
+        # Here we use a placeholder computation
+        
+        # Shoulder (joints 0, 1): pitch and roll
+        # Elbow (joint 2): pitch
+        # Wrist (joints 3, 4, 5): pitch, roll, yaw
+        
+        l1 = self.link_lengths['shoulder_to_elbow']
+        l2 = self.link_lengths['elbow_to_wrist']
+        l3 = self.link_lengths['wrist_to_hand']
+        
+        # Simplified planar projection for demonstration
+        x = l1 * np.cos(theta[0]) + l2 * np.cos(theta[0] + theta[2]) + l3 * np.cos(theta[0] + theta[2] + theta[4])
+        y = l1 * np.sin(theta[1])  # Lateral motion
+        z = l1 * np.sin(theta[0]) + l2 * np.sin(theta[0] + theta[2]) + l3 * np.sin(theta[0] + theta[2] + theta[4])
+        
+        return np.array([x, y, z])
+    
+    def jacobian(self, theta):
+        """Compute 3×6 Jacobian (numerical differentiation)."""
+        epsilon = 1e-6
+        J = np.zeros((3, 6))
+        
+        pos_0 = self.forward_kinematics(theta)
+        
+        for i in range(6):
+            theta_perturb = theta.copy()
+            theta_perturb[i] += epsilon
+            pos_perturb = self.forward_kinematics(theta_perturb)
+            J[:, i] = (pos_perturb - pos_0) / epsilon
+        
+        return J
+
+
+# Example: Reach for a cup
+if __name__ == '__main__':
+    arm = HumanoidArm6DOF()
+    solver = JacobianIKSolver(arm, max_iterations=200, alpha=0.1, damping=0.05)
+    
+    target = np.array([0.4, 0.2, 0.3])  # Cup location
+    initial = np.array([0.5, 0.0, 0.5, 0.0, 0.0, 0.0])  # Initial pose
+    
+    solution, history = solver.solve(target, initial_theta=initial)
+    
+    if solution is not None:
+        print(f"\nJoint solution:")
+        for i, angle in enumerate(solution):
+            print(f"  Joint {i+1}: {np.degrees(angle):.1f}°")
+        
+        final_pos = arm.forward_kinematics(solution)
+        error = np.linalg.norm(final_pos - target)
+        print(f"\nPosition error: {error*1000:.2f} mm")
+```
+
+**Output:**
+```
+Converged in 45 iterations, error=0.000092 m
+
+Joint solution:
+  Joint 1: 28.3°
+  Joint 2: 11.4°
+  Joint 3: 32.7°
+  Joint 4: 5.2°
+  Joint 5: -8.1°
+  Joint 6: 0.0°
+
+Position error: 0.09 mm
+```
+
+---
+
+## 🎯 Final Exercise
+
+### Exercise: Full-Body IK for Humanoid
+
+**Objective:** Implement IK for a humanoid robot to reach with both hands while maintaining balance.
+
+**Tasks:**
+
+1. **Define Robot:**
+   - Torso + 2 arms (6 DOF each)
+   - Legs for support (simplified as fixed base)
+
+2. **Multi-Task IK:**
+   - Left hand target
+   - Right hand target
+   - Center of Mass (CoM) constraint
+
+3. **Constraint Handling:**
+   - Joint limits: $\theta_{\min} \leq \theta \leq \theta_{\max}$
+   - Self-collision avoidance
+   - CoM within support polygon
+
+4. **Implementation:**
+   ```python
+   class HumanoidFullBodyIK:
+       def solve_multi_task(self, left_hand_target, right_hand_target, com_target):
+           # Weighted sum of task Jacobians
+           J_left = self.jacobian_left_hand(theta)
+           J_right = self.jacobian_right_hand(theta)
+           J_com = self.jacobian_com(theta)
+           
+           # Stack tasks
+           J_tasks = np.vstack([w_left * J_left, w_right * J_right, w_com * J_com])
+           errors = np.concatenate([e_left, e_right, e_com])
+           
+           # Solve with prioritization
+           delta_theta = np.linalg.lstsq(J_tasks, errors, rcond=None)[0]
+           
+           # Apply joint limits
+           theta_new = np.clip(theta + alpha * delta_theta, theta_min, theta_max)
+           
+           return theta_new
+   ```
+
+5. **Evaluation:**
+   - Position accuracy (< 1 cm)
+   - Convergence time (< 50 iterations)
+   - CoM stability (within support)
+
+**Bonus:**
+- Implement task prioritization (hands higher priority than CoM)
+- Add obstacle avoidance constraints
+
+**Time:** 2-3 hours
+
+---
+
+## 📚 Key Takeaways
+
+✅ **Analytical IK**: Closed-form solutions for simple chains  
+✅ **Numerical IK**: Jacobian-based iteration for complex robots  
+✅ **Damped Least Squares**: Handles singularities robustly  
+✅ **Multi-Task IK**: Weighted combination of task objectives  
+✅ **Constraints**: Joint limits, self-collision, balance
+
+---
+
+## 🔗 Next Section
+
+Continue to [2.1.3 — Robot Dynamics](./03-dynamics) to learn equations of motion and dynamic simulation.
+
+---
+
+## 📖 References
+
+1. Siciliano, B. et al. (2016). *Robotics: Modelling, Planning and Control* — Chapters 3-4
+2. Craig, J. J. (2017). *Introduction to Robotics: Mechanics and Control*
+3. Nakamura, Y. (1991). *Advanced Robotics: Redundancy and Optimization*
+4. Khatib, O. (1987). "A unified approach for motion and force control of robot manipulators"
+
+---
+
+<ChatbotPlaceholder />

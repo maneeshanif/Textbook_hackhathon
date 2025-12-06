@@ -1,6 +1,20 @@
 # Physical AI & Humanoid Robotics Textbook
 
-An interactive online textbook built with [Docusaurus](https://docusaurus.io/) supporting multi-language content (English + Urdu with RTL), dark/light themes, and custom MDX components.
+An interactive online textbook built with [Docusaurus](https://docusaurus.io/) covering physical AI, embodied intelligence, and humanoid robotics. Features multi-language support (English + Urdu with RTL), dark/light themes, and custom educational components.
+
+## ✨ Features
+
+- 📚 **Comprehensive Content**: 4 modules covering fundamentals to advanced topics
+- 🌍 **Bilingual**: English and Urdu (اردو) with RTL layout support
+- 🎨 **Theme Support**: Light and dark modes with smooth transitions
+- 🧩 **Custom Components**:
+  - `ChapterHeader` - Chapter metadata display
+  - `DifficultyBadge` - Visual difficulty indicators
+  - `ChatbotPlaceholder` - Coming soon AI assistant widget
+- ♿ **Accessible**: WCAG 2.1 AA compliant with keyboard navigation
+- 📱 **Responsive**: Mobile-first design
+- 🔍 **Search**: Full-text search across all content
+- 📊 **Math Support**: KaTeX for rendering equations
 
 ## 🚀 Quick Start
 
@@ -20,7 +34,7 @@ npm install
 npm start
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+This command starts a local development server at `http://localhost:3000` and opens up a browser window. Most changes are reflected live without having to restart the server.
 
 ### Build
 
@@ -35,9 +49,6 @@ This command generates static content into the `build` directory and can be serv
 ```bash
 # Run unit tests
 npm test
-
-# Run E2E tests
-npm run test:e2e
 
 # Run with coverage
 npm run test:coverage
