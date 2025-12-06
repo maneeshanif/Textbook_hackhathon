@@ -1,0 +1,257 @@
+---
+id: locomotion-gait
+title: 2.3 Locomotion and Gait
+sidebar_position: 3
+---
+
+# 2.3 Locomotion and Gait
+
+## Introduction
+
+**Bipedal locomotion** is one of the most challenging problems in humanoid robotics. Unlike statically stable wheeled robots, walking robots must constantly balance while transferring weight between feet.
+
+## Stability Criteria
+
+### Static Stability
+
+A robot is **statically stable** if its center of mass (CoM) projection falls within the support polygon (footprint) while stationary.
+
+**Support Polygon**: Convex hull of all ground contact points.
+
+For a humanoid with two feet:
+- **Double Support**: Polygon includes both feet (stable)
+- **Single Support**: Polygon is just one foot (requires dynamic balance)
+
+### Dynamic Stability
+
+A robot is **dynamically stable** if it can maintain balance during motion, even if statically unstable at any instant.
+
+**Example**: Running requires dynamically stable control, as there are phases with no ground contact.
+
+## Zero Moment Point (ZMP)
+
+### Definition
+
+The **Zero Moment Point** is the point on the ground where the net moment from contact forces is zero.
+
+**Key Property**: If ZMP is inside the support polygon, the robot will not tip over.
+
+### ZMP Equation
+
+$$
+\mathbf{p}_{\text{ZMP}} = \frac{\sum m_i (\ddot{\mathbf{r}}_i + \mathbf{g}) \times \mathbf{r}_i}{\sum m_i (\ddot{z}_i + g)}
+$$
+
+Where:
+- $m_i$: Mass of link $i$
+- $\mathbf{r}_i$: Position of link $i$
+- $\ddot{\mathbf{r}}_i$: Acceleration of link $i$
+- $\mathbf{g}$: Gravity vector
+
+### ZMP-Based Walking Control
+
+1. Plan footsteps (foot placements over time)
+2. Generate CoM trajectory such that ZMP stays inside support polygon
+3. Compute joint trajectories via inverse kinematics
+4. Execute with inverse dynamics control
+
+## Gait Patterns
+
+### Walking Gait
+
+**Phases**:
+1. **Double Support**: Both feet on ground (stable)
+2. **Single Support**: One foot on ground, other swings forward
+3. **Heel Strike**: Swinging foot makes contact
+4. **Toe Off**: Trailing foot lifts off
+
+**Gait Parameters**:
+- **Stride Length**: Distance between successive heel strikes of same foot
+- **Step Width**: Lateral distance between feet
+- **Step Frequency**: Steps per second
+
+### Running Gait
+
+Includes a **flight phase** where both feet are off the ground. Requires predictive control and fast feedback.
+
+### Stair Climbing
+
+Requires:
+- Large vertical CoM displacement
+- Precise foot placement
+- Increased joint torques
+
+## Center of Mass (CoM) Control
+
+### Linear Inverted Pendulum Model (LIPM)
+
+Simplifies bipedal walking by modeling the robot as a point mass at the CoM connected to a massless leg.
+
+**Equation of Motion (2D):**
+
+$$
+\ddot{x} = \frac{g}{h} (x - x_{\text{ZMP}})
+$$
+
+Where:
+- $x$: CoM position
+- $h$: CoM height (assumed constant)
+- $x_{\text{ZMP}}$: ZMP position
+
+**Key Insight**: If we control $x_{\text{ZMP}}$, we can control CoM motion.
+
+### Python Simulation
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+def lipm_dynamics(x, x_dot, x_zmp, h=0.9, g=9.81, dt=0.01):
+    """
+    LIPM dynamics: CoM acceleration depends on ZMP position.
+    
+    Args:
+        x: CoM position
+        x_dot: CoM velocity
+        x_zmp: ZMP position (control input)
+        h: CoM height
+        g: Gravity
+        dt: Time step
+    
+    Returns:
+        (x_new, x_dot_new): Updated state
+    """
+    x_ddot = (g / h) * (x - x_zmp)
+    x_dot_new = x_dot + x_ddot * dt
+    x_new = x + x_dot_new * dt
+    return x_new, x_dot_new
+
+# Simulation: Step response
+x, x_dot = 0.0, 0.0  # Start at origin
+x_zmp = 0.1  # Step ZMP to 10 cm
+
+trajectory_x = []
+trajectory_zmp = []
+time = np.arange(0, 2, 0.01)
+
+for t in time:
+    x, x_dot = lipm_dynamics(x, x_dot, x_zmp)
+    trajectory_x.append(x)
+    trajectory_zmp.append(x_zmp)
+
+plt.plot(time, trajectory_x, label='CoM Position')
+plt.plot(time, trajectory_zmp, label='ZMP (Control)', linestyle='--')
+plt.xlabel('Time (s)')
+plt.ylabel('Position (m)')
+plt.title('LIPM Step Response')
+plt.legend()
+plt.grid()
+plt.show()
+```
+
+## Footstep Planning
+
+### Objective
+
+Generate a sequence of footstep positions $(x_i, y_i, \theta_i)$ that:
+- Avoid obstacles
+- Stay within kinematic limits
+- Maintain stability
+
+### A* Footstep Planning
+
+1. Discretize environment into grid
+2. Each node represents a possible footstep
+3. Use A* search to find shortest collision-free path
+
+### Optimization-Based Planning
+
+Formulate as a constrained optimization problem:
+
+$$
+\min_{\mathbf{p}} \quad \text{cost}(\mathbf{p})
+$$
+
+Subject to:
+- Kinematic reachability
+- Collision avoidance
+- ZMP constraints
+
+## Whole-Body Control
+
+### Problem
+
+Generate joint torques $\boldsymbol{\tau}$ that simultaneously:
+- Track desired CoM trajectory
+- Maintain foot contact with ground
+- Minimize joint accelerations
+
+### Quadratic Program (QP) Formulation
+
+$$
+\min_{\ddot{\mathbf{q}}, \mathbf{F}} \quad \|\ddot{\mathbf{q}} - \ddot{\mathbf{q}}_{\text{desired}}\|^2
+$$
+
+Subject to:
+- Dynamics: $M \ddot{\mathbf{q}} = \boldsymbol{\tau} + J^T \mathbf{F} - C \dot{\mathbf{q}} - G$
+- Contact constraints: $J_c \ddot{\mathbf{q}} + \dot{J}_c \dot{\mathbf{q}} = 0$
+- Friction cone: $\mathbf{F} \in \mathcal{F}_{\text{friction}}$
+
+Modern controllers solve this QP in real-time (1 kHz).
+
+## Balance Recovery
+
+### Push Recovery Strategies
+
+1. **Ankle Strategy**: Adjust ankle torque to shift ZMP
+   - Works for small disturbances
+   - Fast response
+
+2. **Hip Strategy**: Rotate hips to shift CoM
+   - Larger range than ankle
+   - Slower response
+
+3. **Stepping Strategy**: Take a step to expand support polygon
+   - Most robust
+   - Requires replanning footsteps
+
+### Capture Point (CP)
+
+The **capture point** is the position where the robot must place its foot to come to a complete stop.
+
+$$
+\mathbf{p}_{\text{CP}} = \mathbf{p}_{\text{CoM}} + \sqrt{\frac{h}{g}} \dot{\mathbf{p}}_{\text{CoM}}
+$$
+
+**Control Strategy**: Step to the capture point to regain balance.
+
+## Energy-Efficient Gaits
+
+### Passive Dynamic Walking
+
+Exploit natural dynamics to walk down a slope without actuation. Demonstrates that efficient walking uses gravity and inertia, not just motors.
+
+### Optimization-Based Gait Generation
+
+Minimize energy consumption:
+
+$$
+\min \int_0^T \boldsymbol{\tau}^T \dot{\mathbf{q}} \, dt
+$$
+
+Subject to:
+- Dynamics constraints
+- Contact constraints
+- Task objectives (walking speed, step length)
+
+## Key Takeaways
+
+- **ZMP**: Must stay inside support polygon for stability
+- **LIPM**: Simplified model for CoM dynamics and control
+- **Gait Phases**: Double support, single support, swing, heel strike
+- **Whole-Body Control**: QP-based optimization for real-time torque generation
+- **Balance Recovery**: Ankle, hip, and stepping strategies
+
+---
+
+**Next:** [2.4 Exercises](./2.4-exercises)

@@ -1,0 +1,90 @@
+/**
+ * RTL (Right-to-Left) styles for Urdu locale
+ * Applied automatically when direction='rtl' is set in i18n config
+ */
+
+/* RTL-specific adjustments */
+[dir='rtl'] {
+  /* Text alignment */
+  text-align: right;
+}
+
+/* Navbar adjustments for RTL */
+[dir='rtl'] .navbar__item {
+  margin-right: 0;
+  margin-left: var(--ifm-navbar-item-padding-horizontal);
+}
+
+[dir='rtl'] .navbar__brand {
+  margin-right: 0;
+  margin-left: 1rem;
+}
+
+/* Sidebar adjustments for RTL */
+[dir='rtl'] .menu {
+  padding-right: 0;
+  padding-left: 0.5rem;
+}
+
+[dir='rtl'] .menu__link {
+  padding-right: 0.75rem;
+  padding-left: 0.75rem;
+}
+
+[dir='rtl'] .menu__list-item-collapsible {
+  padding-right: 0;
+}
+
+/* Pagination for RTL */
+[dir='rtl'] .pagination-nav__link--prev {
+  float: right;
+}
+
+[dir='rtl'] .pagination-nav__link--next {
+  float: left;
+}
+
+/* Table of contents for RTL */
+[dir='rtl'] .table-of-contents {
+  padding-right: 0;
+  padding-left: 0.5rem;
+}
+
+/* Breadcrumbs for RTL */
+[dir='rtl'] .breadcrumbs__item:not(:last-child):after {
+  transform: rotate(180deg);
+  margin: 0 0.3rem 0 0;
+}
+
+/* Dropdown menus for RTL */
+[dir='rtl'] .dropdown__menu {
+  left: auto;
+  right: 0;
+}
+
+/* Code blocks - keep LTR for code even in RTL mode */
+[dir='rtl'] pre,
+[dir='rtl'] code {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Icons that should flip in RTL */
+[dir='rtl'] .menu__link--sublist-caret:after {
+  transform: rotate(90deg);
+}
+
+/* Footer adjustments */
+[dir='rtl'] .footer {
+  text-align: right;
+}
+
+[dir='rtl'] .footer__links {
+  padding-right: 0;
+}
+
+/* Ensure proper spacing for Urdu typography */
+[dir='rtl'] .markdown {
+  /* Urdu text flows better with slightly more spacing */
+  letter-spacing: 0.01em;
+}

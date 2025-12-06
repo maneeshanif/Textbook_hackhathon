@@ -1,0 +1,203 @@
+---
+id: learning-based-control
+title: 4.2 Learning-Based Control
+sidebar_position: 2
+---
+
+# 4.2 Learning-Based Control
+
+## Introduction
+
+Traditional control (PID, inverse dynamics) requires accurate models. **Learning-based methods** enable robots to:
+- Learn from experience (reinforcement learning)
+- Learn from demonstrations (imitation learning)
+- Adapt to new tasks without reprogramming
+
+## Reinforcement Learning (RL)
+
+### Framework
+
+**Agent** interacts with **environment**:
+1. Observe state $s_t$
+2. Take action $a_t$
+3. Receive reward $r_t$ and next state $s_{t+1}$
+
+**Objective**: Maximize cumulative reward
+
+$$
+\max_{\pi} \mathbb{E} \left[ \sum_{t=0}^{\infty} \gamma^t r_t \right]
+$$
+
+Where:
+- $\pi$: Policy (state → action mapping)
+- $\gamma$: Discount factor (0 < γ < 1)
+
+### Deep Reinforcement Learning
+
+**Policy Network**: Neural network that maps observations to actions.
+
+**Value Network**: Estimates expected future reward from a state.
+
+### Example: Training a Humanoid to Walk (Conceptual)
+
+```python
+import gym
+
+# Create environment (e.g., MuJoCo Humanoid)
+env = gym.make('Humanoid-v4')
+
+# Initialize policy network
+policy = PolicyNetwork(state_dim=376, action_dim=17)
+
+for episode in range(10000):
+    state = env.reset()
+    done = False
+    episode_reward = 0
+    
+    while not done:
+        # Policy selects action
+        action = policy(state)
+        
+        # Environment step
+        next_state, reward, done, _ = env.step(action)
+        
+        # Store transition for training
+        replay_buffer.add(state, action, reward, next_state, done)
+        
+        # Update policy (e.g., PPO, SAC)
+        if len(replay_buffer) > batch_size:
+            policy.update(replay_buffer.sample(batch_size))
+        
+        state = next_state
+        episode_reward += reward
+    
+    print(f"Episode {episode}: Reward = {episode_reward}")
+```
+
+### Popular RL Algorithms
+
+**Proximal Policy Optimization (PPO)**:
+- On-policy algorithm
+- Stable, widely used for robot learning
+
+**Soft Actor-Critic (SAC)**:
+- Off-policy algorithm
+- Sample-efficient, good for continuous control
+
+## Imitation Learning
+
+### Behavior Cloning
+
+**Approach**: Learn policy by supervised learning from expert demonstrations.
+
+$$
+\min_{\pi} \mathbb{E}_{(s, a) \sim D_{\text{expert}}} \left[ \|\pi(s) - a\|^2 \right]
+$$
+
+**Advantages**: Fast, no reward function needed
+
+**Disadvantages**: Distribution shift (policy may encounter states not in demos)
+
+### Example: Learning to Grasp from Demonstrations
+
+```python
+import torch
+import torch.nn as nn
+
+# Dataset: (image, joint_angles) pairs from human teleoperation
+dataset = GraspingDataset('demonstrations.pkl')
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=32)
+
+# Policy network: Image → Joint angles
+policy_net = nn.Sequential(
+    nn.Conv2d(3, 32, kernel_size=8, stride=4),
+    nn.ReLU(),
+    nn.Conv2d(32, 64, kernel_size=4, stride=2),
+    nn.ReLU(),
+    nn.Flatten(),
+    nn.Linear(3136, 256),
+    nn.ReLU(),
+    nn.Linear(256, 7)  # 7-DOF arm
+)
+
+optimizer = torch.optim.Adam(policy_net.parameters(), lr=1e-3)
+criterion = nn.MSELoss()
+
+# Train
+for epoch in range(100):
+    for images, actions in dataloader:
+        predicted_actions = policy_net(images)
+        loss = criterion(predicted_actions, actions)
+        
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    
+    print(f"Epoch {epoch}: Loss = {loss.item():.4f}")
+```
+
+## Sim-to-Real Transfer
+
+### Problem
+
+Policies trained in simulation often fail on real robots due to:
+- **Sim-to-real gap**: Physics mismatch, sensor noise, actuator delays
+- **Overfitting**: Policy relies on unrealistic simulation features
+
+### Solutions
+
+1. **Domain Randomization**: Randomize simulation parameters (mass, friction, lighting)
+2. **System Identification**: Measure real robot parameters and tune simulator
+3. **Real-World Fine-Tuning**: Train in sim, fine-tune on real robot
+
+### Example: Domain Randomization
+
+```python
+# Randomize robot parameters during training
+def randomize_robot(robot):
+    robot.mass = np.random.uniform(50, 70)  # kg
+    robot.friction = np.random.uniform(0.5, 1.5)
+    robot.actuator_delay = np.random.uniform(0, 0.02)  # seconds
+    robot.joint_damping = np.random.uniform(0.1, 0.5)
+
+# Training loop with randomization
+for episode in range(10000):
+    randomize_robot(robot)  # New parameters each episode
+    state = env.reset()
+    # ... train as usual
+```
+
+## Foundation Models for Robotics
+
+### Vision-Language Models (VLMs)
+
+**Examples**: GPT-4V, Gemini, PaLM-E
+
+**Capability**: Understand natural language commands and visual scenes.
+
+**Application**: High-level task planning
+
+```python
+# Example: Figure 01 with OpenAI VLM
+command = "Pick up the blue box and place it on the table"
+
+# VLM breaks down into sub-tasks
+sub_tasks = vlm.parse_command(command, image=camera_frame)
+# Output: ["detect blue box", "grasp blue box", "detect table", "place on table"]
+
+# Execute each sub-task with learned policies
+for task in sub_tasks:
+    action = policy_net(camera_frame, task)
+    robot.execute(action)
+```
+
+## Key Takeaways
+
+- **Reinforcement Learning**: Trial-and-error learning, maximizes cumulative reward
+- **Imitation Learning**: Learn from expert demonstrations (faster but requires data)
+- **Sim-to-Real**: Domain randomization bridges simulation and reality
+- **Foundation Models**: VLMs enable natural language control and task understanding
+
+---
+
+**Next:** [4.3 Real-World Applications](./4.3-real-world-applications)

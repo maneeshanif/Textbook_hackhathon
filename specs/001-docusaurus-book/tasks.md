@@ -24,13 +24,13 @@
 
 **Purpose**: Project initialization and Docusaurus scaffolding
 
-- [ ] T001 Initialize Docusaurus project with `npx create-docusaurus@latest book classic --typescript` in repository root
-- [ ] T002 Configure TypeScript in `book/tsconfig.json` per project standards
-- [ ] T003 [P] Add ESLint and Prettier config in `book/.eslintrc.js` and `book/.prettierrc`
-- [ ] T004 [P] Create `book/README.md` with developer setup instructions
-- [ ] T005 [P] Update `book/package.json` with all dependencies from plan.md
+- [x] T001 Initialize Docusaurus project with `npx create-docusaurus@latest book classic --typescript` in repository root
+- [x] T002 Configure TypeScript in `book/tsconfig.json` per project standards
+- [x] T003 [P] Add ESLint and Prettier config in `book/.eslintrc.js` and `book/.prettierrc`
+- [x] T004 [P] Create `book/README.md` with developer setup instructions
+- [x] T005 [P] Update `book/package.json` with all dependencies from plan.md
 
-**Checkpoint**: Docusaurus project builds and runs locally (`npm start`)
+**Checkpoint**: Docusaurus project builds and runs locally (`npm start`) ✅
 
 ---
 
@@ -40,16 +40,16 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Configure i18n in `book/docusaurus.config.ts` with English (default) and Urdu locales
-- [ ] T007 Setup sidebar autogeneration in `book/sidebars.ts`
-- [ ] T008 [P] Create base theme variables in `book/src/css/custom.css`
-- [ ] T009 [P] Create RTL stylesheet in `book/src/css/rtl.css` for Urdu locale
-- [ ] T010 [P] Configure Prism syntax highlighting themes (light: github, dark: dracula) in `book/docusaurus.config.ts`
-- [ ] T011 Setup global MDX component registration in `book/src/theme/MDXComponents.tsx`
-- [ ] T012 [P] Add static assets: `book/static/img/logo.svg` and `book/static/img/favicon.ico`
-- [ ] T013 [P] Configure navbar with locale dropdown in `book/docusaurus.config.ts`
+- [x] T006 Configure i18n in `book/docusaurus.config.ts` with English (default) and Urdu locales
+- [x] T007 Setup sidebar autogeneration in `book/sidebars.ts`
+- [x] T008 [P] Create base theme variables in `book/src/css/custom.css`
+- [x] T009 [P] Create RTL stylesheet in `book/src/css/rtl.css` for Urdu locale
+- [x] T010 [P] Configure Prism syntax highlighting themes (light: github, dark: dracula) in `book/docusaurus.config.ts`
+- [x] T011 Setup global MDX component registration in `book/src/theme/MDXComponents.tsx`
+- [x] T012 [P] Add static assets: `book/static/img/logo.svg` and `book/static/img/favicon.ico`
+- [x] T013 [P] Configure navbar with locale dropdown in `book/docusaurus.config.ts`
 
-**Checkpoint**: Foundation ready - i18n configured, sidebar working, themes applied, MDX components registerable
+**Checkpoint**: Foundation ready - i18n configured, sidebar working, themes applied, MDX components registerable ✅
 
 ---
 
@@ -61,23 +61,23 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Create homepage in `book/src/pages/index.tsx` with book title, description, and "Start Reading" button
-- [ ] T015 [P] [US1] Create Chapter 1 category metadata in `book/docs/01-introduction/_category_.json`
-- [ ] T016 [P] [US1] Create Chapter 2 category metadata in `book/docs/02-humanoid-robotics/_category_.json`
-- [ ] T017 [P] [US1] Create Chapter 3 category metadata in `book/docs/03-sensors-actuators/_category_.json`
-- [ ] T018 [P] [US1] Create Chapter 4 category metadata in `book/docs/04-ai-integration/_category_.json`
-- [ ] T019 [US1] Create `book/docs/01-introduction/1.0-overview.mdx` with ChapterHeader and placeholder content
-- [ ] T020 [P] [US1] Create `book/docs/01-introduction/1.1-what-is-physical-ai.mdx` with section content
-- [ ] T021 [P] [US1] Create `book/docs/01-introduction/1.2-history-evolution.mdx` with section content
-- [ ] T022 [P] [US1] Create `book/docs/01-introduction/1.3-exercises.mdx` with exercise placeholders
-- [ ] T023 [P] [US1] Create `book/docs/01-introduction/1.4-summary.mdx` with chapter summary
-- [ ] T024 [US1] Create `book/docs/02-humanoid-robotics/2.0-overview.mdx` with ChapterHeader and placeholder content
-- [ ] T025 [P] [US1] Create `book/docs/02-humanoid-robotics/2.1-anatomy.mdx` with section content
-- [ ] T026 [P] [US1] Create `book/docs/02-humanoid-robotics/2.2-locomotion.mdx` with section content
-- [ ] T027 [US1] Create `book/docs/03-sensors-actuators/3.0-overview.mdx` with ChapterHeader and placeholder content
-- [ ] T028 [P] [US1] Create `book/docs/03-sensors-actuators/3.1-sensor-types.mdx` with section content
-- [ ] T029 [US1] Create `book/docs/04-ai-integration/4.0-overview.mdx` with ChapterHeader and placeholder content
-- [ ] T030 [P] [US1] Create `book/docs/04-ai-integration/4.1-machine-learning.mdx` with section content
+- [x] T014 [US1] Create homepage in `book/src/pages/index.tsx` with book title, description, and "Start Reading" button
+- [x] T015 [P] [US1] Create Chapter 1 category metadata in `book/docs/01-introduction/_category_.json`
+- [x] T016 [P] [US1] Create Chapter 2 category metadata in `book/docs/02-humanoid-robotics/_category_.json`
+- [x] T017 [P] [US1] Create Chapter 3 category metadata in `book/docs/03-sensors-actuators/_category_.json`
+- [x] T018 [P] [US1] Create Chapter 4 category metadata in `book/docs/04-ai-integration/_category_.json`
+- [x] T019 [US1] Create `book/docs/01-introduction/1.0-overview.mdx` with ChapterHeader and placeholder content
+- [x] T020 [P] [US1] Create `book/docs/01-introduction/1.1-what-is-physical-ai.mdx` with section content
+- [x] T021 [P] [US1] Create `book/docs/01-introduction/1.2-history-evolution.mdx` with section content (created as 1.2-humanoid-robotics-overview.mdx + 1.3-historical-development.mdx)
+- [x] T022 [P] [US1] Create `book/docs/01-introduction/1.3-exercises.mdx` with exercise placeholders (created as 1.4-exercises.mdx)
+- [x] T023 [P] [US1] Create `book/docs/01-introduction/1.4-summary.mdx` with chapter summary (created as 1.5-summary.mdx)
+- [x] T024 [US1] Create `book/docs/02-humanoid-robotics/2.0-overview.mdx` with ChapterHeader and placeholder content
+- [x] T025 [P] [US1] Create `book/docs/02-humanoid-robotics/2.1-anatomy.mdx` with section content (created as 2.1-kinematics.mdx, 2.2-dynamics.mdx, 2.3-locomotion-gait.mdx with technical depth)
+- [x] T026 [P] [US1] Create `book/docs/02-humanoid-robotics/2.2-locomotion.mdx` with section content (covered in 2.3-locomotion-gait.mdx)
+- [x] T027 [US1] Create `book/docs/03-sensors-actuators/3.0-overview.mdx` with ChapterHeader and placeholder content
+- [x] T028 [P] [US1] Create `book/docs/03-sensors-actuators/3.1-sensor-types.mdx` with section content (created as 3.1-vision-systems.mdx, 3.2-force-imu-sensors.mdx, 3.3-actuator-technologies.mdx with technical depth)
+- [x] T029 [US1] Create `book/docs/04-ai-integration/4.0-overview.mdx` with ChapterHeader and placeholder content
+- [x] T030 [P] [US1] Create `book/docs/04-ai-integration/4.1-machine-learning.mdx` with section content (created as 4.1-computer-vision.mdx, 4.2-learning-based-control.mdx, 4.3-real-world-applications.mdx with technical depth)
 - [ ] T031 [US1] Implement ChapterHeader component in `book/src/components/ChapterHeader/index.tsx` per contract
 - [ ] T032 [P] [US1] Create ChapterHeader styles in `book/src/components/ChapterHeader/styles.module.css`
 

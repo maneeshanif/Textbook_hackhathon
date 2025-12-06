@@ -1,0 +1,226 @@
+---
+id: exercises
+title: 1.4 Exercises
+sidebar_position: 4
+---
+
+# 1.4 Exercises
+
+## Conceptual Questions
+
+### Question 1: Physical AI vs Traditional AI
+**Difficulty:** Beginner
+
+Explain the key differences between a traditional AI system (like ChatGPT) and a Physical AI system (like a humanoid robot). Provide at least three specific differences.
+
+<details>
+<summary>Solution</summary>
+
+**Key Differences:**
+
+1. **Embodiment**: Physical AI has a physical body that interacts with the real world, while traditional AI exists purely in software.
+
+2. **Inputs**: Physical AI processes noisy sensor data (cameras, force sensors, IMUs), while traditional AI processes structured digital data (text, images).
+
+3. **Outputs**: Physical AI generates motor commands that cause physical movement, while traditional AI generates predictions, classifications, or text.
+
+4. **Real-time Constraints**: Physical AI must react in real-time to avoid collisions and maintain balance, while traditional AI can often process inputs offline.
+
+5. **Learning Paradigm**: Physical AI learns from interaction with the environment (reinforcement learning), while traditional AI is often trained on static datasets.
+
+</details>
+
+---
+
+### Question 2: Humanoid Design Trade-offs
+**Difficulty:** Intermediate
+
+Why might a company choose to build a wheeled robot instead of a humanoid robot for warehouse logistics? List at least three advantages of wheeled robots in this context.
+
+<details>
+<summary>Solution</summary>
+
+**Advantages of Wheeled Robots for Warehouses:**
+
+1. **Stability**: Wheeled robots have a low center of gravity and static stability, eliminating the complex balance control required for bipedal robots.
+
+2. **Energy Efficiency**: Rolling is more energy-efficient than walking, leading to longer operational hours per battery charge.
+
+3. **Speed**: Wheeled robots can move faster and more predictably than bipedal robots, improving logistics throughput.
+
+4. **Simplicity**: Fewer actuators and sensors reduce cost, maintenance, and control complexity.
+
+5. **Payload Capacity**: Wheeled platforms can carry heavier loads without stability concerns.
+
+**Counterargument for Humanoids**: If the warehouse has stairs, narrow aisles, or requires manipulation of objects on shelves, a humanoid form may be necessary.
+
+</details>
+
+---
+
+### Question 3: Historical Analysis
+**Difficulty:** Beginner
+
+Which humanoid robot from the timeline (1973-2024) do you consider the most significant milestone, and why?
+
+<details>
+<summary>Example Answer</summary>
+
+**ASIMO (2000)** is arguably the most culturally significant milestone because:
+
+- It was the first humanoid robot that demonstrated reliable bipedal walking in public demonstrations.
+- It captured global imagination and inspired a generation of roboticists.
+- Honda's open sharing of research accelerated the field.
+
+**Alternative Answer: Atlas (2013)** could be chosen for:
+- Demonstrating dynamic, acrobatic locomotion (backflips, parkour).
+- Proving that humanoids could perform high-speed, agile tasks.
+- Pushing the boundaries of control theory and actuation.
+
+</details>
+
+---
+
+## Research Questions
+
+### Question 4: Current State of the Art
+**Difficulty:** Intermediate
+
+Research one of the following humanoid robots and write a 200-word summary:
+- Tesla Optimus Gen 2
+- Figure 01
+- Unitree H1
+- 1X Neo Beta
+
+Include: height, weight, actuation type, key features, and intended use case.
+
+---
+
+### Question 5: Ethical Considerations
+**Difficulty:** Advanced
+
+Read about the "uncanny valley" effect in humanoid robotics. Write a 300-word essay on:
+- What is the uncanny valley?
+- Why does it matter for humanoid robot design?
+- Should humanoid robots look exactly like humans? Why or why not?
+
+---
+
+## Hands-On Projects
+
+### Project 1: Sensorimotor Loop Simulation
+**Difficulty:** Beginner
+
+**Objective**: Implement a simple sensorimotor loop in Python.
+
+**Scenario**: A robot with a single sensor (distance to wall) and a single actuator (forward/backward movement) must maintain a target distance of 1.0 meter from a wall.
+
+```python
+import random
+
+class SimpleRobot:
+    def __init__(self, initial_distance=2.0):
+        self.distance = initial_distance  # meters from wall
+        self.target_distance = 1.0
+    
+    def sense(self):
+        # Simulate noisy sensor (±10% error)
+        noise = random.uniform(-0.1, 0.1)
+        return self.distance + noise
+    
+    def decide_action(self, sensed_distance):
+        # TODO: Implement control logic
+        # Return 'forward', 'backward', or 'stop'
+        pass
+    
+    def act(self, action):
+        # TODO: Update self.distance based on action
+        # forward: decrease distance by 0.1m
+        # backward: increase distance by 0.1m
+        # stop: no change
+        pass
+    
+    def run(self, steps=20):
+        for i in range(steps):
+            sensed = self.sense()
+            action = self.decide_action(sensed)
+            self.act(action)
+            print(f"Step {i}: Distance={self.distance:.2f}m, Action={action}")
+
+# Test your robot
+robot = SimpleRobot(initial_distance=2.0)
+robot.run(steps=20)
+```
+
+**Grading Criteria:**
+- [ ] Robot converges to 1.0m ± 0.2m within 20 steps
+- [ ] Handles noisy sensor data
+- [ ] Does not oscillate excessively
+
+<details>
+<summary>Solution</summary>
+
+```python
+def decide_action(self, sensed_distance):
+    error = sensed_distance - self.target_distance
+    threshold = 0.15  # meters
+    
+    if error > threshold:
+        return 'forward'  # Too far, move closer
+    elif error < -threshold:
+        return 'backward'  # Too close, move away
+    else:
+        return 'stop'  # Within acceptable range
+
+def act(self, action):
+    if action == 'forward':
+        self.distance = max(0, self.distance - 0.1)
+    elif action == 'backward':
+        self.distance += 0.1
+    # 'stop' does nothing
+```
+
+This implements a simple **bang-bang controller** with a deadband. More sophisticated solutions could use PID control.
+
+</details>
+
+---
+
+### Project 2: Humanoid Robot Research
+**Difficulty:** Intermediate
+
+**Objective**: Compare two current humanoid robots using a structured framework.
+
+**Instructions:**
+1. Choose two robots from: Atlas, Optimus, Figure 01, Unitree H1, 1X Neo
+2. Create a comparison table with the following dimensions:
+   - Physical specifications (height, weight, DOF)
+   - Actuation type (hydraulic, electric)
+   - Sensor suite (cameras, lidar, force sensors)
+   - AI capabilities (vision models, language understanding)
+   - Target market (research, commercial, military)
+   - Estimated cost (if publicly available)
+3. Write a 300-word analysis: Which robot is better suited for home assistance, and why?
+
+---
+
+## Discussion Topics
+
+### Topic 1: Future of Labor
+Should we build humanoid robots that can replace human workers in dangerous jobs (mining, disaster response, military)? Discuss both benefits and ethical concerns.
+
+### Topic 2: Design Philosophy
+Is the humanoid form the optimal design for general-purpose robots, or are we anthropomorphizing robots unnecessarily? Could a non-humanoid form be more effective?
+
+---
+
+## Key Takeaways
+
+- Physical AI requires embodiment, real-world interaction, and real-time control
+- Humanoid robots face unique challenges (balance, complexity, energy efficiency)
+- The field has evolved from mechanical toys (1700s) to AI-powered systems (2020s)
+- Current research focuses on sim-to-real transfer, whole-body control, and AI integration
+
+---
+
+**Next:** [1.5 Summary](./1.5-summary)

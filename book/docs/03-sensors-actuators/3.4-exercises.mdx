@@ -1,0 +1,173 @@
+---
+id: exercises
+title: 3.4 Exercises
+sidebar_position: 4
+---
+
+# 3.4 Exercises
+
+## Sensor Problems
+
+### Problem 1: Stereo Depth Calculation
+**Difficulty:** Beginner
+
+A stereo camera system has:
+- Baseline: $B = 0.12$ m
+- Focal length: $f = 500$ pixels
+- Disparity: $d = 50$ pixels
+
+Calculate the depth $Z$.
+
+<details>
+<summary>Solution</summary>
+
+$$
+Z = \frac{f \cdot B}{d} = \frac{500 \times 0.12}{50} = 1.2 \text{ m}
+$$
+
+**Answer:** 1.2 meters
+
+</details>
+
+---
+
+### Problem 2: IMU Orientation Estimation
+**Difficulty:** Intermediate
+
+Implement a complementary filter in Python and test with simulated noisy data.
+
+<details>
+<summary>Solution Code</summary>
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+class ComplementaryFilter:
+    def __init__(self, alpha=0.98, dt=0.01):
+        self.alpha = alpha
+        self.dt = dt
+        self.angle = 0.0
+    
+    def update(self, accel_angle, gyro_rate):
+        # Integrate gyroscope
+        angle_gyro = self.angle + gyro_rate * self.dt
+        
+        # Fuse with accelerometer
+        self.angle = self.alpha * angle_gyro + (1 - self.alpha) * accel_angle
+        return self.angle
+
+# Simulate noisy sensors
+time = np.arange(0, 10, 0.01)
+true_angle = 30 * np.sin(2 * np.pi * 0.2 * time)  # 30° oscillation
+
+cf = ComplementaryFilter(alpha=0.98)
+estimated_angles = []
+
+for t, angle_true in zip(time, true_angle):
+    # Simulate sensors with noise
+    accel_angle = angle_true + np.random.normal(0, 5)  # Noisy
+    gyro_rate = 30 * 0.2 * 2 * np.pi * np.cos(2 * np.pi * 0.2 * t) + np.random.normal(0, 0.1)
+    
+    angle_est = cf.update(accel_angle, gyro_rate)
+    estimated_angles.append(angle_est)
+
+plt.plot(time, true_angle, label='True Angle')
+plt.plot(time, estimated_angles, label='Estimated Angle')
+plt.xlabel('Time (s)')
+plt.ylabel('Angle (degrees)')
+plt.legend()
+plt.grid()
+plt.show()
+```
+
+</details>
+
+---
+
+## Actuator Problems
+
+### Problem 3: Motor Selection
+**Difficulty:** Intermediate
+
+Select a motor for a hip joint with:
+- Required torque: 150 N·m
+- Required speed: 4 rad/s
+- Available gear ratios: 100:1, 160:1, 200:1
+
+Motor options:
+- **Motor A**: 1.2 N·m, 400 rad/s
+- **Motor B**: 0.8 N·m, 600 rad/s
+
+<details>
+<summary>Solution</summary>
+
+**Motor A with Gear Ratio**:
+- For 150 N·m: $G = 150 / 1.2 = 125$ → Use 160:1 gear
+- Output speed: $400 / 160 = 2.5$ rad/s ❌ (too slow)
+
+**Motor B with Gear Ratio**:
+- For 150 N·m: $G = 150 / 0.8 = 187.5$ → Use 200:1 gear
+- Output speed: $600 / 200 = 3$ rad/s ❌ (still too slow)
+
+**Conclusion**: Neither motor meets requirements. Need more powerful motor or accept lower torque/speed.
+
+**Possible Solution**: Use Motor B with 160:1 gear:
+- Output torque: $0.8 \times 160 = 128$ N·m (85% of target)
+- Output speed: $600 / 160 = 3.75$ rad/s ✓
+
+**Recommendation**: Motor B with 160:1 gear (accept 15% torque reduction).
+
+</details>
+
+---
+
+### Problem 4: SEA Spring Selection
+**Difficulty:** Advanced
+
+Design a series elastic actuator with:
+- Motor torque: 2 N·m
+- Desired output torque range: 0-40 N·m
+- Gear ratio: 30:1
+- Maximum spring deflection: 10 degrees
+
+Calculate the required spring stiffness $K_s$.
+
+<details>
+<summary>Solution</summary>
+
+**Maximum motor torque after gearing**:
+
+$$
+\tau_{\text{max}} = 2 \times 30 = 60 \text{ N·m}
+$$
+
+**Spring stiffness** (for 40 N·m at 10° deflection):
+
+$$
+K_s = \frac{\tau}{\Delta \theta} = \frac{40}{10 \times \pi / 180} = \frac{40}{0.1745} = 229 \text{ N·m/rad}
+$$
+
+**Verification**: At 60 N·m, deflection would be:
+
+$$
+\Delta \theta = \frac{60}{229} = 0.262 \text{ rad} = 15°
+$$
+
+This exceeds 10° limit, so must limit motor torque or increase spring stiffness.
+
+**Final Design**: $K_s = 343$ N·m/rad (to keep max deflection at 10° for 60 N·m)
+
+</details>
+
+---
+
+## Key Takeaways
+
+- Sensor fusion combines complementary strengths (e.g., accelerometer + gyroscope)
+- Motor selection involves gear ratio trade-offs (torque vs. speed)
+- Series elastic actuators provide compliance but require careful spring design
+
+---
+
+**Next:** [3.5 Summary](./3.5-summary)
