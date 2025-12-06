@@ -24,13 +24,13 @@
 
 **Purpose**: Project initialization and Docusaurus scaffolding
 
-- [ ] T001 Initialize Docusaurus project with `npx create-docusaurus@latest book classic --typescript` in repository root
-- [ ] T002 Configure TypeScript in `book/tsconfig.json` per project standards
-- [ ] T003 [P] Add ESLint and Prettier config in `book/.eslintrc.js` and `book/.prettierrc`
-- [ ] T004 [P] Create `book/README.md` with developer setup instructions
-- [ ] T005 [P] Update `book/package.json` with all dependencies from plan.md
+- [x] T001 Initialize Docusaurus project with `npx create-docusaurus@latest book classic --typescript` in repository root
+- [x] T002 Configure TypeScript in `book/tsconfig.json` per project standards
+- [x] T003 [P] Add ESLint and Prettier config in `book/.eslintrc.js` and `book/.prettierrc`
+- [x] T004 [P] Create `book/README.md` with developer setup instructions
+- [x] T005 [P] Update `book/package.json` with all dependencies from plan.md
 
-**Checkpoint**: Docusaurus project builds and runs locally (`npm start`)
+**Checkpoint**: Docusaurus project builds and runs locally (`npm start`) ✅
 
 ---
 
@@ -40,16 +40,16 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Configure i18n in `book/docusaurus.config.ts` with English (default) and Urdu locales
-- [ ] T007 Setup sidebar autogeneration in `book/sidebars.ts`
-- [ ] T008 [P] Create base theme variables in `book/src/css/custom.css`
-- [ ] T009 [P] Create RTL stylesheet in `book/src/css/rtl.css` for Urdu locale
-- [ ] T010 [P] Configure Prism syntax highlighting themes (light: github, dark: dracula) in `book/docusaurus.config.ts`
-- [ ] T011 Setup global MDX component registration in `book/src/theme/MDXComponents.tsx`
-- [ ] T012 [P] Add static assets: `book/static/img/logo.svg` and `book/static/img/favicon.ico`
-- [ ] T013 [P] Configure navbar with locale dropdown in `book/docusaurus.config.ts`
+- [x] T006 Configure i18n in `book/docusaurus.config.ts` with English (default) and Urdu locales
+- [x] T007 Setup sidebar autogeneration in `book/sidebars.ts`
+- [x] T008 [P] Create base theme variables in `book/src/css/custom.css`
+- [x] T009 [P] Create RTL stylesheet in `book/src/css/rtl.css` for Urdu locale
+- [x] T010 [P] Configure Prism syntax highlighting themes (light: github, dark: dracula) in `book/docusaurus.config.ts`
+- [x] T011 Setup global MDX component registration in `book/src/theme/MDXComponents.tsx`
+- [x] T012 [P] Add static assets: `book/static/img/logo.svg` and `book/static/img/favicon.ico`
+- [x] T013 [P] Configure navbar with locale dropdown in `book/docusaurus.config.ts`
 
-**Checkpoint**: Foundation ready - i18n configured, sidebar working, themes applied, MDX components registerable
+**Checkpoint**: Foundation ready - i18n configured, sidebar working, themes applied, MDX components registerable ✅
 
 ---
 
