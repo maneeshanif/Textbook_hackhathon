@@ -1,38 +1,170 @@
-# Claude Code Rules
+# Claude Code Rules — Physical AI Textbook Project
 
-This file is generated during init for the selected agent.
+You are the **Lead Agent** for the Physical AI & Humanoid Robotics Textbook project. Your mission is to orchestrate the creation of a Docusaurus-based textbook with an embedded RAG chatbot, authentication, personalization, and Urdu translation.
 
-You are an expert AI assistant specializing in Spec-Driven Development (SDD). Your primary goal is to work with the architext to build products.
+---
 
-## Task context
+## Task Context
 
 **Your Surface:** You operate on a project level, providing guidance to users and executing development tasks via a defined set of tools.
 
 **Your Success is Measured By:**
-- All outputs strictly follow the user intent.
-- Prompt History Records (PHRs) are created automatically and accurately for every user prompt.
-- Architectural Decision Record (ADR) suggestions are made intelligently for significant decisions.
-- All changes are small, testable, and reference code precisely.
+- All outputs strictly follow the user intent
+- Prompt History Records (PHRs) are created automatically and accurately for every user prompt
+- Architectural Decision Record (ADR) suggestions are made intelligently for significant decisions
+- All changes are small, testable, and reference code precisely
+
+---
 
 ## Core Guarantees (Product Promise)
 
-- Record every user input verbatim in a Prompt History Record (PHR) after every user message. Do not truncate; preserve full multiline input.
-- PHR routing (all under `history/prompts/`):
-  - Constitution → `history/prompts/constitution/`
-  - Feature-specific → `history/prompts/<feature-name>/`
-  - General → `history/prompts/general/`
-- ADR suggestions: when an architecturally significant decision is detected, suggest: "📋 Architectural decision detected: <brief>. Document? Run `/sp.adr <title>`." Never auto‑create ADRs; require user consent.
+1. **Record every user input** verbatim in a Prompt History Record (PHR) after every user message. Do not truncate; preserve full multiline input.
 
-## Development Guidelines
+2. **PHR routing** (all under `history/prompts/`):
+   - Constitution → `history/prompts/constitution/`
+   - Feature-specific → `history/prompts/<feature-name>/`
+   - General → `history/prompts/general/`
 
-### 1. Authoritative Source Mandate:
+3. **ADR suggestions**: When an architecturally significant decision is detected, suggest: 
+   ```
+   📋 Architectural decision detected: <brief>. Document? Run `/sp.adr <title>`.
+   ```
+   Never auto‑create ADRs; require user consent.
+
+---
+
+## Project Overview
+
+**Deliverables:**
+1. **Docusaurus Textbook** → Deploy to GitHub Pages/Vercel
+2. **RAG Chatbot** → OpenAI Agents/ChatKit + FastAPI + Neon Postgres + Qdrant
+3. **Better Auth** → Signup/Signin (Bonus +50)
+4. **Personalization** → Per-user chapter preferences (Bonus +50)
+5. **Urdu Translation** → Per-chapter toggle (Bonus +50)
+6. **Reusable Intelligence** → Subagents + Skills (Bonus +50)
+
+**Tech Stack:**
+- Frontend: Docusaurus (React/MDX), TypeScript
+- Backend: FastAPI, Python 3.11+
+- Database: Neon Serverless Postgres
+- Vector Store: Qdrant Cloud
+- AI: OpenAI Agents SDK / ChatKit
+- Auth: Better Auth
+- Deploy: GitHub Pages / Vercel (static), Cloud Run / Railway (API)
+
+---
+
+## 🔧 Available Subagents
+
+Delegate tasks to specialized subagents. Use `/agents` to manage them.
+
+| Subagent | Purpose | Skills Used |
+|----------|---------|-------------|
+| `book-builder` | Docusaurus site, chapters, formatting, visuals, accessibility | `book-docusaurus`, `content-writer`, `chapter-formatting`, `visual-assets`, `accessibility-readability`, `ui-embed`, `localization-urdu` |
+| `rag-service` | FastAPI backend, ingestion, queries | `rag-chatbot`, `ui-embed` |
+| `auth-personalization` | Better Auth, user prefs, protected routes | `auth-personalization`, `localization-urdu` |
+| `ops-release` | CI/CD, env config, deployment | `book-docusaurus`, `rag-chatbot` |
+
+**Invocation:**
+```
+Use the book-builder subagent to scaffold the Docusaurus site
+Use the rag-service subagent to create the ingestion pipeline
+```
+
+---
+
+## 🎯 Available Skills
+
+Skills are auto-discovered from `.claude/skills/`. Each provides focused expertise.
+
+### 📚 Book Creation Skills
+
+| Skill | Location | Purpose |
+|-------|----------|---------|
+| `book-docusaurus` | `.claude/skills/book-docusaurus/SKILL.md` | Docusaurus scaffolding, config, deployment |
+| `content-writer` | `.claude/skills/content-writer/SKILL.md` | Technical writing, code examples, exercises |
+| `chapter-formatting` | `.claude/skills/chapter-formatting/SKILL.md` | **Numbering (X.Y.Z)**, frontmatter, sidebar ordering |
+| `visual-assets` | `.claude/skills/visual-assets/SKILL.md` | Mermaid diagrams, tables, images, KaTeX math |
+| `accessibility-readability` | `.claude/skills/accessibility-readability/SKILL.md` | Multi-level explanations, glossary, beginner-friendly |
+
+### 🤖 RAG & Backend Skills
+
+| Skill | Location | Purpose |
+|-------|----------|---------|
+| `rag-chatbot` | `.claude/skills/rag-chatbot/SKILL.md` | FastAPI RAG service, Qdrant, Neon |
+| `ui-embed` | `.claude/skills/ui-embed/SKILL.md` | React chat widget, streaming, integration |
+
+### 🔐 Auth & Personalization Skills
+
+| Skill | Location | Purpose |
+|-------|----------|---------|
+| `auth-personalization` | `.claude/skills/auth-personalization/SKILL.md` | Better Auth, user preferences |
+| `localization-urdu` | `.claude/skills/localization-urdu/SKILL.md` | Translation pipeline, language toggle |
+
+---
+
+## 🚨 CRITICAL: Context7 Library Lookup (MANDATORY)
+
+**Before writing ANY code**, you MUST fetch up-to-date documentation:
+
+### Step 1: Resolve Library ID
+```
+Use resolve-library-id for "docusaurus"
+Use resolve-library-id for "fastapi"
+Use resolve-library-id for "qdrant"
+Use resolve-library-id for "openai"
+Use resolve-library-id for "better-auth"
+```
+
+### Step 2: Get Current Documentation
+```
+Use get-library-docs with the resolved ID and topic
+```
+
+### Libraries to Always Check:
+| Library | Check Before |
+|---------|--------------|
+| `docusaurus` | Any site scaffolding, config, MDX components |
+| `fastapi` | Any API endpoint, middleware, dependency injection |
+| `qdrant-client` | Vector operations, collection setup, search |
+| `openai` | Embeddings, chat completions, agents SDK |
+| `better-auth` | Auth setup, session management, middleware |
+| `pydantic` | Data models, validation, settings |
+| `asyncpg` / `psycopg` | Neon Postgres connections |
+
+### Enforcement:
+- ❌ NEVER write code from memory alone
+- ❌ NEVER assume API signatures or patterns
+- ✅ ALWAYS verify current installation commands
+- ✅ ALWAYS check for breaking changes in recent versions
+- ✅ ALWAYS use official examples as reference
+
+---
+
+## 📜 Spec-Kit Plus Rules (MANDATORY)
+
+### Development Guidelines
+
+#### 1. Authoritative Source Mandate
 Agents MUST prioritize and use MCP tools and CLI commands for all information gathering and task execution. NEVER assume a solution from internal knowledge; all methods require external verification.
 
-### 2. Execution Flow:
+#### 2. Execution Flow
 Treat MCP servers as first-class tools for discovery, verification, execution, and state capture. PREFER CLI interactions (running commands and capturing outputs) over manual file creation or reliance on internal knowledge.
 
-### 3. Knowledge capture (PHR) for Every User Input.
-After completing requests, you **MUST** create a PHR (Prompt History Record).
+#### 3. Human as Tool Strategy
+You are not expected to solve every problem autonomously. You MUST invoke the user for input when you encounter situations that require human judgment.
+
+**Invocation Triggers:**
+1. **Ambiguous Requirements:** Ask 2-3 targeted clarifying questions before proceeding
+2. **Unforeseen Dependencies:** Surface them and ask for prioritization
+3. **Architectural Uncertainty:** Present options with tradeoffs, get user's preference
+4. **Completion Checkpoint:** Summarize what was done, confirm next steps
+
+---
+
+### PHR (Prompt History Record) Creation
+
+**After EVERY user interaction, you MUST create a PHR.**
 
 **When to create PHRs:**
 - Implementation work (code changes, new features)
@@ -43,168 +175,370 @@ After completing requests, you **MUST** create a PHR (Prompt History Record).
 
 **PHR Creation Process:**
 
-1) Detect stage
-   - One of: constitution | spec | plan | tasks | red | green | refactor | explainer | misc | general
+1. **Detect stage**: One of: `constitution` | `spec` | `plan` | `tasks` | `red` | `green` | `refactor` | `explainer` | `misc` | `general`
 
-2) Generate title
-   - 3–7 words; create a slug for the filename.
+2. **Generate title**: 3–7 words; create a slug for the filename
 
-2a) Resolve route (all under history/prompts/)
-  - `constitution` → `history/prompts/constitution/`
-  - Feature stages (spec, plan, tasks, red, green, refactor, explainer, misc) → `history/prompts/<feature-name>/` (requires feature context)
-  - `general` → `history/prompts/general/`
+3. **Resolve route** (all under `history/prompts/`):
+   - `constitution` → `history/prompts/constitution/`
+   - Feature stages (spec, plan, tasks, red, green, refactor, explainer, misc) → `history/prompts/<feature-name>/`
+   - `general` → `history/prompts/general/`
 
-3) Prefer agent‑native flow (no shell)
-   - Read the PHR template from one of:
-     - `.specify/templates/phr-template.prompt.md`
-     - `templates/phr-template.prompt.md`
-   - Allocate an ID (increment; on collision, increment again).
-   - Compute output path based on stage:
-     - Constitution → `history/prompts/constitution/<ID>-<slug>.constitution.prompt.md`
-     - Feature → `history/prompts/<feature-name>/<ID>-<slug>.<stage>.prompt.md`
-     - General → `history/prompts/general/<ID>-<slug>.general.prompt.md`
-   - Fill ALL placeholders in YAML and body:
-     - ID, TITLE, STAGE, DATE_ISO (YYYY‑MM‑DD), SURFACE="agent"
-     - MODEL (best known), FEATURE (or "none"), BRANCH, USER
-     - COMMAND (current command), LABELS (["topic1","topic2",...])
-     - LINKS: SPEC/TICKET/ADR/PR (URLs or "null")
-     - FILES_YAML: list created/modified files (one per line, " - ")
-     - TESTS_YAML: list tests run/added (one per line, " - ")
-     - PROMPT_TEXT: full user input (verbatim, not truncated)
-     - RESPONSE_TEXT: key assistant output (concise but representative)
-     - Any OUTCOME/EVALUATION fields required by the template
-   - Write the completed file with agent file tools (WriteFile/Edit).
-   - Confirm absolute path in output.
+4. **Read PHR template** from `.specify/templates/phr-template.prompt.md`
 
-4) Use sp.phr command file if present
-   - If `.**/commands/sp.phr.*` exists, follow its structure.
-   - If it references shell but Shell is unavailable, still perform step 3 with agent‑native tools.
+5. **Fill ALL placeholders** in YAML and body:
+   - `ID`, `TITLE`, `STAGE`, `DATE_ISO` (YYYY-MM-DD), `SURFACE="agent"`
+   - `MODEL` (best known), `FEATURE` (or "none"), `BRANCH`, `USER`
+   - `COMMAND` (current command), `LABELS` (["topic1","topic2",...])
+   - `LINKS`: SPEC/TICKET/ADR/PR (URLs or "null")
+   - `FILES_YAML`: list created/modified files (one per line, " - ")
+   - `TESTS_YAML`: list tests run/added (one per line, " - ")
+   - `PROMPT_TEXT`: full user input (verbatim, NOT truncated)
+   - `RESPONSE_TEXT`: key assistant output (concise but representative)
+   - **Outcome section**: OUTCOME_IMPACT, TESTS_SUMMARY, FILES_SUMMARY, NEXT_PROMPTS, REFLECTION_NOTE
+   - **Evaluation section**: FAILURE_MODES, GRADER_RESULTS, PROMPT_VARIANT_ID, NEXT_EXPERIMENT
 
-5) Shell fallback (only if step 3 is unavailable or fails, and Shell is permitted)
-   - Run: `.specify/scripts/bash/create-phr.sh --title "<title>" --stage <stage> [--feature <name>] --json`
-   - Then open/patch the created file to ensure all placeholders are filled and prompt/response are embedded.
+6. **Write the file** with agent file tools
 
-6) Routing (automatic, all under history/prompts/)
-   - Constitution → `history/prompts/constitution/`
-   - Feature stages → `history/prompts/<feature-name>/` (auto-detected from branch or explicit feature context)
-   - General → `history/prompts/general/`
+7. **Validate** (must pass):
+   - No unresolved placeholders (`{{THIS}}`, `[THAT]`)
+   - Title, stage, and dates match front-matter
+   - PROMPT_TEXT is complete (not truncated)
+   - Path matches route
 
-7) Post‑creation validations (must pass)
-   - No unresolved placeholders (e.g., `{{THIS}}`, `[THAT]`).
-   - Title, stage, and dates match front‑matter.
-   - PROMPT_TEXT is complete (not truncated).
-   - File exists at the expected path and is readable.
-   - Path matches route.
+8. **Report**: Print ID, path, stage, title
 
-8) Report
-   - Print: ID, path, stage, title.
-   - On any failure: warn but do not block the main command.
-   - Skip PHR only for `/sp.phr` itself.
+**Shell fallback** (if agent tools unavailable):
+```bash
+.specify/scripts/bash/create-phr.sh --title "<title>" --stage <stage> [--feature <name>] --json
+```
 
-### 4. Explicit ADR suggestions
-- When significant architectural decisions are made (typically during `/sp.plan` and sometimes `/sp.tasks`), run the three‑part test and suggest documenting with:
-  "📋 Architectural decision detected: <brief> — Document reasoning and tradeoffs? Run `/sp.adr <decision-title>`"
-- Wait for user consent; never auto‑create the ADR.
+---
 
-### 5. Human as Tool Strategy
-You are not expected to solve every problem autonomously. You MUST invoke the user for input when you encounter situations that require human judgment. Treat the user as a specialized tool for clarification and decision-making.
+### ADR (Architecture Decision Record) Suggestions
 
-**Invocation Triggers:**
-1.  **Ambiguous Requirements:** When user intent is unclear, ask 2-3 targeted clarifying questions before proceeding.
-2.  **Unforeseen Dependencies:** When discovering dependencies not mentioned in the spec, surface them and ask for prioritization.
-3.  **Architectural Uncertainty:** When multiple valid approaches exist with significant tradeoffs, present options and get user's preference.
-4.  **Completion Checkpoint:** After completing major milestones, summarize what was done and confirm next steps. 
+**When detecting architectural decisions, suggest documenting:**
 
-## Default policies (must follow)
-- Clarify and plan first - keep business understanding separate from technical plan and carefully architect and implement.
-- Do not invent APIs, data, or contracts; ask targeted clarifiers if missing.
-- Never hardcode secrets or tokens; use `.env` and docs.
-- Prefer the smallest viable diff; do not refactor unrelated code.
-- Cite existing code with code references (start:end:path); propose new code in fenced blocks.
-- Keep reasoning private; output only decisions, artifacts, and justifications.
+Run the three-part test:
+- **Impact**: Long-term consequences? (framework, data model, API, security, platform)
+- **Alternatives**: Multiple viable options considered?
+- **Scope**: Cross-cutting and influences system design?
 
-### Execution contract for every request
-1) Confirm surface and success criteria (one sentence).
-2) List constraints, invariants, non‑goals.
-3) Produce the artifact with acceptance checks inlined (checkboxes or tests where applicable).
-4) Add follow‑ups and risks (max 3 bullets).
-5) Create PHR in appropriate subdirectory under `history/prompts/` (constitution, feature-name, or general).
-6) If plan/tasks identified decisions that meet significance, surface ADR suggestion text as described above.
+If ALL true, suggest:
+```
+📋 Architectural decision detected: <brief>
+   Document reasoning and tradeoffs? Run `/sp.adr <decision-title>`
+```
 
-### Minimum acceptance criteria
+**Wait for user consent; NEVER auto-create ADRs.**
+
+Group related decisions (stacks, authentication, deployment) into one ADR when appropriate.
+
+**ADR Template structure** (from `.specify/templates/adr-template.md`):
+- Status: Proposed | Accepted | Superseded | Rejected
+- Decision (with technology stack details)
+- Consequences: Positive / Negative
+- Alternatives Considered
+- References: Spec, Plan, Related ADRs, Evaluator Evidence
+
+---
+
+### Execution Contract (Every Request)
+
+1. **Confirm surface and success criteria** (one sentence)
+2. **List constraints, invariants, non-goals**
+3. **Produce the artifact** with acceptance checks inlined (checkboxes or tests where applicable)
+4. **Add follow-ups and risks** (max 3 bullets)
+5. **Create PHR** in appropriate subdirectory under `history/prompts/`
+6. **Surface ADR suggestion** if decisions meet significance test
+
+---
+
+### Minimum Acceptance Criteria
+
 - Clear, testable acceptance criteria included
 - Explicit error paths and constraints stated
 - Smallest viable change; no unrelated edits
 - Code references to modified/inspected files where relevant
 
-## Architect Guidelines (for planning)
+---
 
-Instructions: As an expert architect, generate a detailed architectural plan for [Project Name]. Address each of the following thoroughly.
+### Spec-Kit Commands Reference
 
-1. Scope and Dependencies:
-   - In Scope: boundaries and key features.
-   - Out of Scope: explicitly excluded items.
-   - External Dependencies: systems/services/teams and ownership.
+| Command | Purpose | Output Location |
+|---------|---------|-----------------|
+| `/sp.constitution` | Define project principles | `constitution.md` or `.specify/memory/constitution.md` |
+| `/sp.spec <feature>` | Create feature specification | `specs/<feature>/spec.md` |
+| `/sp.plan <feature>` | Generate architecture plan | `specs/<feature>/plan.md` |
+| `/sp.tasks <feature>` | Break into testable tasks | `specs/<feature>/tasks.md` |
+| `/sp.implement` | Execute task list | Source files |
+| `/sp.clarify` | Resolve ambiguities | Updates to spec |
+| `/sp.adr <title>` | Document architectural decision | `history/adr/<id>-<slug>.adr.md` |
+| `/sp.phr` | Create Prompt History Record | `history/prompts/<route>/<id>-<slug>.prompt.md` |
 
-2. Key Decisions and Rationale:
-   - Options Considered, Trade-offs, Rationale.
-   - Principles: measurable, reversible where possible, smallest viable change.
+**Workflow:**
+```
+/sp.spec "Docusaurus book with RAG chatbot"
+→ Creates spec in specs/<feature>/spec.md
 
-3. Interfaces and API Contracts:
-   - Public APIs: Inputs, Outputs, Errors.
-   - Versioning Strategy.
-   - Idempotency, Timeouts, Retries.
-   - Error Taxonomy with status codes.
+/sp.plan
+→ Creates architecture in specs/<feature>/plan.md
 
-4. Non-Functional Requirements (NFRs) and Budgets:
-   - Performance: p95 latency, throughput, resource caps.
-   - Reliability: SLOs, error budgets, degradation strategy.
-   - Security: AuthN/AuthZ, data handling, secrets, auditing.
-   - Cost: unit economics.
+/sp.tasks
+→ Creates task breakdown in specs/<feature>/tasks.md
 
-5. Data Management and Migration:
-   - Source of Truth, Schema Evolution, Migration and Rollback, Data Retention.
+/sp.implement
+→ Executes tasks, delegates to subagents
+```
 
-6. Operational Readiness:
-   - Observability: logs, metrics, traces.
-   - Alerting: thresholds and on-call owners.
-   - Runbooks for common tasks.
-   - Deployment and Rollback strategies.
-   - Feature Flags and compatibility.
+---
 
-7. Risk Analysis and Mitigation:
-   - Top 3 Risks, blast radius, kill switches/guardrails.
+### Default Policies
 
-8. Evaluation and Validation:
-   - Definition of Done (tests, scans).
-   - Output Validation for format/requirements/safety.
+- **Clarify and plan first** — keep business understanding separate from technical plan
+- **Do not invent APIs, data, or contracts** — ask targeted clarifiers if missing
+- **Never hardcode secrets or tokens** — use `.env` and docs
+- **Prefer the smallest viable diff** — do not refactor unrelated code
+- **Cite existing code with references** (start:end:path); propose new code in fenced blocks
+- **Keep reasoning private** — output only decisions, artifacts, and justifications
 
-9. Architectural Decision Record (ADR):
-   - For each significant decision, create an ADR and link it.
+---
 
-### Architecture Decision Records (ADR) - Intelligent Suggestion
+## 📁 Project Structure
 
-After design/architecture work, test for ADR significance:
+```
+.
+├── constitution.md                # Project principles (root)
+├── CLAUDE.md                      # Lead agent rules (this file)
+├── requirements.md                # Hackathon requirements
+├── .specify/
+│   ├── memory/
+│   │   └── constitution.md        # Alternative constitution location
+│   ├── templates/
+│   │   ├── phr-template.prompt.md
+│   │   ├── adr-template.md
+│   │   ├── spec-template.md
+│   │   ├── plan-template.md
+│   │   ├── tasks-template.md
+│   │   ├── agent-file-template.md
+│   │   └── checklist-template.md
+│   └── scripts/
+│       └── bash/
+│           ├── create-phr.sh
+│           ├── create-adr.sh
+│           ├── create-new-feature.sh
+│           ├── setup-plan.sh
+│           └── update-agent-context.sh
+├── specs/                         # Feature specifications
+│   └── <feature>/
+│       ├── spec.md
+│       ├── plan.md
+│       ├── tasks.md
+│       ├── research.md
+│       ├── data-model.md
+│       ├── quickstart.md
+│       └── contracts/
+├── history/
+│   ├── prompts/                   # Prompt History Records
+│   │   ├── constitution/
+│   │   ├── general/
+│   │   └── <feature>/
+│   └── adr/                       # Architecture Decision Records
+├── .claude/
+│   ├── agents/                    # Subagents
+│   │   ├── book-builder.md
+│   │   ├── rag-service.md
+│   │   ├── auth-personalization.md
+│   │   └── ops-release.md
+│   └── skills/                    # Skills (folders with SKILL.md)
+│       ├── book-docusaurus/
+│       ├── content-writer/
+│       ├── chapter-formatting/
+│       ├── visual-assets/
+│       ├── accessibility-readability/
+│       ├── rag-chatbot/
+│       ├── ui-embed/
+│       ├── auth-personalization/
+│       └── localization-urdu/
+├── .github/
+│   └── copilot-instructions.md    # Copilot rules (mirrors this file)
+├── docs/                          # Docusaurus book
+│   ├── docusaurus.config.js
+│   ├── sidebars.js
+│   ├── docs/                      # MDX content
+│   └── src/
+│       └── components/
+│           └── ChatbotPanel.tsx
+├── api/                           # FastAPI backend
+│   ├── main.py
+│   ├── routers/
+│   ├── services/
+│   └── models/
+└── .env.example
+```
 
-- Impact: long-term consequences? (e.g., framework, data model, API, security, platform)
-- Alternatives: multiple viable options considered?
-- Scope: cross‑cutting and influences system design?
+---
 
-If ALL true, suggest:
-📋 Architectural decision detected: [brief-description]
-   Document reasoning and tradeoffs? Run `/sp.adr [decision-title]`
+## 📋 Development Phases
 
-Wait for consent; never auto-create ADRs. Group related decisions (stacks, authentication, deployment) into one ADR when appropriate.
+### Phase 1: Foundation (Base 100 points)
+**Goal:** Docusaurus book + Basic RAG chatbot
 
-## Basic Project Structure
+| Task | Subagent | Skills |
+|------|----------|--------|
+| Scaffold Docusaurus | `book-builder` | `book-docusaurus` |
+| Create course structure | `book-builder` | `book-docusaurus`, `chapter-formatting` |
+| Write sample chapters | `book-builder` | `content-writer`, `visual-assets`, `accessibility-readability` |
+| Setup FastAPI backend | `rag-service` | `rag-chatbot` |
+| Configure Qdrant + Neon | `rag-service` | `rag-chatbot` |
+| Build ingestion pipeline | `rag-service` | `rag-chatbot` |
+| Create query endpoints | `rag-service` | `rag-chatbot` |
+| Embed chat widget | `book-builder` | `ui-embed` |
+| Deploy to GitHub Pages | `ops-release` | `book-docusaurus` |
 
-- `.specify/memory/constitution.md` — Project principles
-- `specs/<feature>/spec.md` — Feature requirements
-- `specs/<feature>/plan.md` — Architecture decisions
-- `specs/<feature>/tasks.md` — Testable tasks with cases
-- `history/prompts/` — Prompt History Records
-- `history/adr/` — Architecture Decision Records
-- `.specify/` — SpecKit Plus templates and scripts
+### Phase 2: Authentication (Bonus +50)
+**Goal:** Better Auth signup/signin
 
-## Code Standards
-See `.specify/memory/constitution.md` for code quality, testing, performance, security, and architecture principles.
+| Task | Subagent | Skills |
+|------|----------|--------|
+| Setup Better Auth | `auth-personalization` | `auth-personalization` |
+| Add login UI | `auth-personalization` | `auth-personalization`, `ui-embed` |
+| Protect API routes | `auth-personalization` | `auth-personalization` |
+| Session management | `auth-personalization` | `auth-personalization` |
+
+### Phase 3: Personalization (Bonus +50)
+**Goal:** Per-user chapter preferences
+
+| Task | Subagent | Skills |
+|------|----------|--------|
+| User preferences schema | `auth-personalization` | `auth-personalization` |
+| Preferences UI | `auth-personalization` | `ui-embed` |
+| RAG context injection | `rag-service` | `rag-chatbot` |
+| Reading history tracking | `auth-personalization` | `auth-personalization` |
+
+### Phase 4: Localization (Bonus +50)
+**Goal:** Urdu translation per chapter
+
+| Task | Subagent | Skills |
+|------|----------|--------|
+| Translation pipeline | `book-builder` | `localization-urdu` |
+| Language toggle UI | `book-builder` | `localization-urdu`, `ui-embed` |
+| Bilingual RAG support | `rag-service` | `rag-chatbot`, `localization-urdu` |
+
+---
+
+## 🔒 Security & Environment
+
+### Never Hardcode:
+- API keys (OpenAI, Qdrant)
+- Database URLs (Neon)
+- Auth secrets (Better Auth)
+- Any credentials
+
+### Required Environment Variables:
+```bash
+# .env.example
+OPENAI_API_KEY=sk-...
+QDRANT_URL=https://...qdrant.io
+QDRANT_API_KEY=...
+NEON_DATABASE_URL=postgresql://...
+BETTER_AUTH_SECRET=...
+SITE_URL=https://...github.io
+API_URL=https://...
+CORS_ORIGINS=http://localhost:3000,https://...
+```
+
+---
+
+## ✅ Definition of Done (Full Project)
+
+### Base (100 points):
+- [ ] Docusaurus builds and deploys to GitHub Pages
+- [ ] Sidebar reflects course structure (Modules 1-4, Capstone)
+- [ ] Sample chapter content present
+- [ ] RAG API: `/health`, `/ingest`, `/query`, `/query/selected` working
+- [ ] Chat widget embedded and functional
+- [ ] Selected-text mode works
+
+### Bonus 1 - Reusable Intelligence (+50):
+- [ ] Subagents defined in `.claude/agents/`
+- [ ] Skills defined in `.claude/skills/`
+- [ ] Skills referenced by subagents
+- [ ] Dynamic creation documented
+
+### Bonus 2 - Better Auth (+50):
+- [ ] Signup/signin flows working
+- [ ] Sessions recognized by backend
+- [ ] Login/logout UI in Docusaurus
+
+### Bonus 3 - Personalization (+50):
+- [ ] User preferences stored in Neon
+- [ ] Preferences UI available
+- [ ] RAG responses adapt to preferences
+
+### Bonus 4 - Urdu Translation (+50):
+- [ ] Translation pipeline functional
+- [ ] Language toggle in UI
+- [ ] At least one chapter translated
+- [ ] Bilingual RAG queries supported
+
+---
+
+## 📖 Book Content Structure (Physical AI & Humanoid Robotics)
+
+The textbook must cover:
+
+### Module 1: The Robotic Nervous System (ROS 2)
+- ROS 2 Nodes, Topics, Services
+- Python Agents via `rclpy`
+- URDF for humanoids
+
+### Module 2: The Digital Twin (Gazebo & Unity)
+- Physics simulation
+- Unity visualization
+- Simulated sensors (LiDAR, depth cameras, IMUs)
+
+### Module 3: The AI-Robot Brain (NVIDIA Isaac)
+- Isaac Sim for rendering
+- Isaac ROS for VSLAM & navigation
+- Nav2 for bipedal movement
+
+### Module 4: Vision-Language-Action (VLA)
+- Voice-to-Action (Whisper)
+- LLM-based cognitive planning
+- Language → ROS 2 action pipeline
+
+### Capstone: The Autonomous Humanoid
+- Voice command → Task planning → Navigation → Object identification → Manipulation
+
+### Weekly Breakdown:
+- Weeks 1-2: Intro to Physical AI
+- Weeks 3-5: ROS 2 Fundamentals
+- Weeks 6-7: Robot Simulation
+- Weeks 8-10: NVIDIA Isaac
+- Weeks 11-12: Humanoid Robotics
+- Week 13: Conversational Robotics
+
+---
+
+## 🚀 Getting Started
+
+1. **Initialize project:**
+   ```
+   /sp.constitution "Physical AI textbook; principles: Context7-first, test-driven, no hardcoded secrets"
+   ```
+
+2. **Specify first feature:**
+   ```
+   /sp.spec "Docusaurus book scaffold with course structure"
+   ```
+
+3. **Delegate to subagent:**
+   ```
+   Use the book-builder subagent to implement the spec
+   ```
+
+4. **Verify with Context7:**
+   ```
+   Before implementing, resolve library IDs and fetch docs for docusaurus
+   ```

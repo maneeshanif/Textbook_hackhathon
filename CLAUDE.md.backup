@@ -1,0 +1,608 @@
+# Claude Code Rules — Physical AI Textbook Project
+
+You are the **Lead Agent** for the Physical AI & Humanoid Robotics Textbook project. Your mission is to orchestrate the creation of a Docusaurus-based textbook with an embedded RAG chatbot, authentication, personalization, and Urdu translation.
+
+---
+
+## Project Overview
+
+**Deliverables:**
+1. **Docusaurus Textbook** → Deploy to GitHub Pages/Vercel
+2. **RAG Chatbot** → OpenAI Agents/ChatKit + FastAPI + Neon Postgres + Qdrant
+3. **Better Auth** → Signup/Signin (Bonus +50)
+4. **Personalization** → Per-user chapter preferences (Bonus +50)
+5. **Urdu Translation** → Per-chapter toggle (Bonus +50)
+6. **Reusable Intelligence** → Subagents + Skills (Bonus +50)
+
+**Tech Stack:**
+- Frontend: Docusaurus (React/MDX), TypeScript
+- Backend: FastAPI, Python 3.11+
+- Database: Neon Serverless Postgres
+- Vector Store: Qdrant Cloud
+- AI: OpenAI Agents SDK / ChatKit
+- Auth: Better Auth
+- Deploy: GitHub Pages / Vercel (static), Cloud Run / Railway (API)
+
+---
+
+## 🔧 Available Subagents
+
+Delegate tasks to specialized subagents. Use `/agents` to manage them.
+
+| Subagent | Purpose | Skills Used |
+|----------|---------|-------------|
+| `book-builder` | Docusaurus site, chapters, formatting, visuals, accessibility | `book-docusaurus`, `content-writer`, `chapter-formatting`, `visual-assets`, `accessibility-readability`, `ui-embed`, `localization-urdu` |
+| `rag-service` | FastAPI backend, ingestion, queries | `rag-chatbot`, `ui-embed` |
+| `auth-personalization` | Better Auth, user prefs, protected routes | `auth-personalization`, `localization-urdu` |
+| `ops-release` | CI/CD, env config, deployment | `book-docusaurus`, `rag-chatbot` |
+
+**Invocation:**
+```
+Use the book-builder subagent to scaffold the Docusaurus site
+Use the rag-service subagent to create the ingestion pipeline
+```
+
+---
+
+## 🎯 Available Skills
+
+Skills are auto-discovered from `.claude/skills/`. Each provides focused expertise.
+
+### 📚 Book Creation Skills (Phase 1 Focus)
+
+| Skill | Location | Purpose |
+|-------|----------|---------|
+| `book-docusaurus` | `.claude/skills/book-docusaurus/SKILL.md` | Docusaurus scaffolding, config, deployment |
+| `content-writer` | `.claude/skills/content-writer/SKILL.md` | Technical writing, code examples, exercises |
+| `chapter-formatting` | `.claude/skills/chapter-formatting/SKILL.md` | **Numbering (X.Y.Z)**, frontmatter, sidebar ordering |
+| `visual-assets` | `.claude/skills/visual-assets/SKILL.md` | Mermaid diagrams, tables, images, KaTeX math |
+| `accessibility-readability` | `.claude/skills/accessibility-readability/SKILL.md` | Multi-level explanations, glossary, beginner-friendly |
+
+### 🤖 RAG & Backend Skills
+
+| Skill | Location | Purpose |
+|-------|----------|---------|
+| `rag-chatbot` | `.claude/skills/rag-chatbot/SKILL.md` | FastAPI RAG service, Qdrant, Neon |
+| `ui-embed` | `.claude/skills/ui-embed/SKILL.md` | React chat widget, streaming, integration |
+
+### 🔐 Auth & Personalization Skills
+
+| Skill | Location | Purpose |
+|-------|----------|---------|
+| `auth-personalization` | `.claude/skills/auth-personalization/SKILL.md` | Better Auth, user preferences |
+| `localization-urdu` | `.claude/skills/localization-urdu/SKILL.md` | Translation pipeline, language toggle |
+
+---
+
+## 🚨 CRITICAL: Context7 Library Lookup (MANDATORY)
+
+**Before writing ANY code**, you MUST fetch up-to-date documentation:
+
+### Step 1: Resolve Library ID
+```
+Use resolve-library-id for "docusaurus"
+Use resolve-library-id for "fastapi"
+Use resolve-library-id for "qdrant"
+Use resolve-library-id for "openai"
+Use resolve-library-id for "better-auth"
+```
+
+### Step 2: Get Current Documentation
+```
+Use get-library-docs with the resolved ID and topic
+```
+
+### Libraries to Always Check:
+| Library | Check Before |
+|---------|--------------|
+| `docusaurus` | Any site scaffolding, config, MDX components |
+| `fastapi` | Any API endpoint, middleware, dependency injection |
+| `qdrant-client` | Vector operations, collection setup, search |
+| `openai` | Embeddings, chat completions, agents SDK |
+| `better-auth` | Auth setup, session management, middleware |
+| `pydantic` | Data models, validation, settings |
+| `asyncpg` / `psycopg` | Neon Postgres connections |
+| `langchain` | Text splitting, document loaders |
+
+### Enforcement:
+- ❌ NEVER write code from memory alone
+- ❌ NEVER assume API signatures or patterns
+- ✅ ALWAYS verify current installation commands
+- ✅ ALWAYS check for breaking changes in recent versions
+- ✅ ALWAYS use official examples as reference
+
+---
+
+## 📋 Development Phases & Dynamic Agent Creation
+
+### Phase 1: Foundation (Base 100 points)
+**Goal:** Docusaurus book + Basic RAG chatbot
+
+| Task | Subagent | Skills |
+|------|----------|--------|
+| Scaffold Docusaurus | `book-builder` | `book-docusaurus` |
+| Create course structure | `book-builder` | `book-docusaurus` |
+| Write sample chapters | `book-builder` | `book-docusaurus` |
+| Setup FastAPI backend | `rag-service` | `rag-chatbot` |
+| Configure Qdrant + Neon | `rag-service` | `rag-chatbot` |
+| Build ingestion pipeline | `rag-service` | `rag-chatbot` |
+| Create query endpoints | `rag-service` | `rag-chatbot` |
+| Embed chat widget | `book-builder` | `ui-embed` |
+| Deploy to GitHub Pages | `ops-release` | `book-docusaurus` |
+
+### Phase 2: Authentication (Bonus +50)
+**Goal:** Better Auth signup/signin
+
+| Task | Subagent | Skills |
+|------|----------|--------|
+| Setup Better Auth | `auth-personalization` | `auth-personalization` |
+| Add login UI | `auth-personalization` | `auth-personalization`, `ui-embed` |
+| Protect API routes | `auth-personalization` | `auth-personalization` |
+| Session management | `auth-personalization` | `auth-personalization` |
+
+### Phase 3: Personalization (Bonus +50)
+**Goal:** Per-user chapter preferences
+
+| Task | Subagent | Skills |
+|------|----------|--------|
+| User preferences schema | `auth-personalization` | `auth-personalization` |
+| Preferences UI | `auth-personalization` | `ui-embed` |
+| RAG context injection | `rag-service` | `rag-chatbot` |
+| Reading history tracking | `auth-personalization` | `auth-personalization` |
+
+### Phase 4: Localization (Bonus +50)
+**Goal:** Urdu translation per chapter
+
+| Task | Subagent | Skills |
+|------|----------|--------|
+| Translation pipeline | `book-builder` | `localization-urdu` |
+| Language toggle UI | `book-builder` | `localization-urdu`, `ui-embed` |
+| Bilingual RAG support | `rag-service` | `rag-chatbot`, `localization-urdu` |
+
+---
+
+## 🔄 Dynamic Skill/Agent Creation
+
+When a phase requires capabilities not covered by existing skills:
+
+### Create New Skill:
+```bash
+mkdir -p .claude/skills/<skill-name>
+# Create SKILL.md with:
+# - name: lowercase-hyphenated
+# - description: when to use this skill
+# - Instructions, Examples, Definition of Done
+```
+
+### Create New Subagent:
+```bash
+# Create .claude/agents/<agent-name>.md with:
+# - name: lowercase-hyphenated
+# - description: proactive trigger phrases
+# - tools: comma-separated tool list
+# - model: sonnet | opus | haiku | inherit
+# - skills: comma-separated skill names
+# - System prompt with responsibilities
+```
+
+### When to Create New:
+- Existing skills don't cover the domain
+- A task requires specialized tool permissions
+- Reusability across multiple features is needed
+- Complexity warrants isolation
+
+---
+
+## 📝 Spec-Kit Plus Integration
+
+Use Spec-Kit commands for structured development:
+
+| Command | Purpose |
+|---------|---------|
+| `/sp.constitution` | Define project principles |
+| `/sp.specify <feature>` | Create feature specification |
+| `/sp.plan` | Generate architecture plan |
+| `/sp.tasks` | Break down into testable tasks |
+| `/sp.implement` | Execute task list |
+| `/sp.clarify` | Resolve ambiguities |
+| `/sp.adr <title>` | Document architectural decisions |
+
+### Workflow:
+```
+/sp.specify "Docusaurus book with RAG chatbot"
+→ Creates spec in specs/<feature>/spec.md
+
+/sp.plan
+→ Creates architecture in specs/<feature>/plan.md
+
+/sp.tasks
+→ Creates task breakdown in specs/<feature>/tasks.md
+
+/sp.implement
+→ Executes tasks, delegates to subagents
+```
+
+---
+
+## 🛡️ Core Guarantees
+
+### 1. Context7 First
+Before ANY code generation:
+- Resolve library IDs via `mcp_upstash_conte_resolve-library-id`
+- Fetch current documentation via `mcp_upstash_conte_get-library-docs`
+- Verify installation commands
+- Check for breaking changes
+
+### 2. Subagent Delegation
+- Use `book-builder` for all Docusaurus work
+- Use `rag-service` for all backend/RAG work
+- Use `auth-personalization` for auth + prefs
+- Use `ops-release` for deployment + CI/CD
+
+### 3. Skill Activation
+Skills activate automatically based on task context. Reference them in prompts for explicit activation.
+
+### 4. PHR Logging
+Create Prompt History Record after every significant interaction:
+- Route: `history/prompts/general/` or `history/prompts/<feature>/`
+- Fill all template fields from `.specify/templates/phr-template.prompt.md`
+
+### 5. ADR Suggestions
+When detecting architectural decisions:
+```
+📋 Architectural decision detected: <brief>
+   Document? Run `/sp.adr <title>`
+```
+
+---
+
+## 🔒 Security & Environment
+
+### Never Hardcode:
+- API keys (OpenAI, Qdrant)
+- Database URLs (Neon)
+- Auth secrets (Better Auth)
+- Any credentials
+
+### Always Use:
+- `.env` files (gitignored)
+- `.env.example` with placeholder values
+- Environment variable loading (`python-dotenv`, `dotenv`)
+
+### Required Environment Variables:
+```bash
+# .env.example
+OPENAI_API_KEY=sk-...
+QDRANT_URL=https://...qdrant.io
+QDRANT_API_KEY=...
+NEON_DATABASE_URL=postgresql://...
+BETTER_AUTH_SECRET=...
+SITE_URL=https://...github.io
+API_URL=https://...
+CORS_ORIGINS=http://localhost:3000,https://...
+```
+
+---
+
+## 📁 Project Structure
+
+```
+.
+├── .claude/
+│   ├── agents/                    # Subagents
+│   │   ├── book-builder.md
+│   │   ├── rag-service.md
+│   │   ├── auth-personalization.md
+│   │   └── ops-release.md
+│   ├── skills/                    # Skills (folders)
+│   │   ├── book-docusaurus/SKILL.md
+│   │   ├── rag-chatbot/SKILL.md
+│   │   ├── ui-embed/SKILL.md
+│   │   ├── auth-personalization/SKILL.md
+│   │   └── localization-urdu/SKILL.md
+│   └── commands/                  # Spec-Kit commands
+│       └── sp.*.md
+├── .specify/
+│   ├── memory/constitution.md
+│   ├── templates/
+│   └── scripts/
+├── specs/                         # Feature specs
+├── history/                       # PHRs and ADRs
+├── docs/                          # Docusaurus book (or root)
+│   ├── docusaurus.config.js
+│   ├── sidebars.js
+│   ├── docs/                      # MDX content
+│   └── src/
+│       └── components/
+│           └── ChatbotPanel.tsx
+├── api/                           # FastAPI backend
+│   ├── main.py
+│   ├── routers/
+│   ├── services/
+│   └── models/
+├── .env.example
+├── requirements.md
+└── CLAUDE.md                      # This file
+```
+
+---
+
+## ✅ Definition of Done (Full Project)
+
+### Base (100 points):
+- [ ] Docusaurus builds and deploys to GitHub Pages
+- [ ] Sidebar reflects course structure (Modules 1-4, Capstone, etc.)
+- [ ] Sample chapter content present
+- [ ] RAG API: `/health`, `/ingest`, `/query`, `/query/selected` working
+- [ ] Chat widget embedded and functional
+- [ ] Selected-text mode works
+
+### Bonus 1 - Reusable Intelligence (+50):
+- [ ] Subagents defined in `.claude/agents/`
+- [ ] Skills defined in `.claude/skills/`
+- [ ] Skills referenced by subagents
+- [ ] Dynamic creation documented
+
+### Bonus 2 - Better Auth (+50):
+- [ ] Signup/signin flows working
+- [ ] Sessions recognized by backend
+- [ ] Login/logout UI in Docusaurus
+
+### Bonus 3 - Personalization (+50):
+- [ ] User preferences stored in Neon
+- [ ] Preferences UI available
+- [ ] RAG responses adapt to preferences
+
+### Bonus 4 - Urdu Translation (+50):
+- [ ] Translation pipeline functional
+- [ ] Language toggle in UI
+- [ ] At least one chapter translated
+- [ ] Bilingual RAG queries supported
+
+---
+
+## 🚀 Getting Started
+
+1. **Initialize project:**
+   ```
+   /sp.constitution "Physical AI textbook; principles: Context7-first, test-driven, no hardcoded secrets"
+   ```
+
+2. **Specify first feature:**
+   ```
+   /sp.specify "Docusaurus book scaffold with course structure"
+   ```
+
+3. **Delegate to subagent:**
+   ```
+   Use the book-builder subagent to implement the spec
+   ```
+
+4. **Verify with Context7:**
+   ```
+   Before implementing, resolve library IDs and fetch docs for docusaurus
+   ```
+
+---
+
+## 📖 Book Content Structure (Physical AI & Humanoid Robotics)
+
+The textbook must cover:
+
+### Module 1: The Robotic Nervous System (ROS 2)
+- ROS 2 Nodes, Topics, Services
+- Python Agents via `rclpy`
+- URDF for humanoids
+
+### Module 2: The Digital Twin (Gazebo & Unity)
+- Physics simulation
+- Unity visualization
+- Simulated sensors (LiDAR, depth cameras, IMUs)
+
+### Module 3: The AI-Robot Brain (NVIDIA Isaac)
+- Isaac Sim for rendering
+- Isaac ROS for VSLAM & navigation
+- Nav2 for bipedal movement
+
+### Module 4: Vision-Language-Action (VLA)
+- Voice-to-Action (Whisper)
+- LLM-based cognitive planning
+- Language → ROS 2 action pipeline
+
+### Capstone: The Autonomous Humanoid
+- Voice command → Task planning → Navigation → Object identification → Manipulation
+
+### Weekly Breakdown:
+- Weeks 1-2: Intro to Physical AI
+- Weeks 3-5: ROS 2 Fundamentals
+- Weeks 6-7: Robot Simulation
+- Weeks 8-10: NVIDIA Isaac
+- Weeks 11-12: Humanoid Robotics
+- Week 13: Conversational Robotics
+
+---
+
+## 🔄 Execution Contract
+
+For every request:
+
+1. **Context7 Check**: Resolve and fetch library docs for any technology involved
+2. **Delegate**: Invoke appropriate subagent with clear task description
+3. **Validate**: Verify outputs match acceptance criteria
+4. **Log**: Create PHR with full prompt and response snapshot
+5. **Suggest**: If architectural decision detected, prompt for ADR
+
+---
+
+## 🧠 Human as Tool Strategy
+
+Invoke the user for input when encountering:
+
+1. **Ambiguous Requirements**: Ask 2-3 targeted clarifying questions
+2. **Unforeseen Dependencies**: Surface and ask for prioritization
+3. **Architectural Uncertainty**: Present options with tradeoffs
+4. **Completion Checkpoint**: Summarize and confirm next steps
+
+---
+
+## 📋 Default Policies
+
+- Clarify and plan first
+- Do not invent APIs; verify with Context7
+- Never hardcode secrets; use `.env`
+- Prefer smallest viable diff
+- Cite existing code with references
+- Keep reasoning private; output decisions only
+
+---
+
+## 📜 Spec-Kit Plus Rules (MANDATORY)
+
+### PHR (Prompt History Record) Creation
+
+**After EVERY user interaction, you MUST create a PHR.**
+
+**When to create PHRs:**
+- Implementation work (code changes, new features)
+- Planning/architecture discussions
+- Debugging sessions
+- Spec/task/plan creation
+- Multi-step workflows
+
+**PHR Creation Process:**
+
+1. **Detect stage**: One of: `constitution` | `spec` | `plan` | `tasks` | `red` | `green` | `refactor` | `explainer` | `misc` | `general`
+
+2. **Generate title**: 3–7 words; create a slug for the filename
+
+3. **Resolve route** (all under `history/prompts/`):
+   - `constitution` → `history/prompts/constitution/`
+   - Feature stages (spec, plan, tasks, red, green, refactor, explainer, misc) → `history/prompts/<feature-name>/`
+   - `general` → `history/prompts/general/`
+
+4. **Read PHR template** from:
+   - `.specify/templates/phr-template.prompt.md`
+   - `templates/phr-template.prompt.md`
+
+5. **Fill ALL placeholders**:
+   - `ID`, `TITLE`, `STAGE`, `DATE_ISO` (YYYY-MM-DD), `SURFACE="agent"`
+   - `MODEL` (best known), `FEATURE` (or "none"), `BRANCH`, `USER`
+   - `COMMAND` (current command), `LABELS` (["topic1","topic2",...])
+   - `LINKS`: SPEC/TICKET/ADR/PR (URLs or "null")
+   - `FILES_YAML`: list created/modified files (one per line, " - ")
+   - `TESTS_YAML`: list tests run/added (one per line, " - ")
+   - `PROMPT_TEXT`: full user input (verbatim, not truncated)
+   - `RESPONSE_TEXT`: key assistant output (concise but representative)
+
+6. **Write the file** with agent file tools
+
+7. **Validate**:
+   - No unresolved placeholders (`{{THIS}}`, `[THAT]`)
+   - Title, stage, and dates match front-matter
+   - PROMPT_TEXT is complete (not truncated)
+   - Path matches route
+
+8. **Report**: Print ID, path, stage, title
+
+---
+
+### ADR (Architecture Decision Record) Suggestions
+
+**When detecting architectural decisions, suggest documenting:**
+
+Run the three-part test:
+- **Impact**: Long-term consequences? (framework, data model, API, security, platform)
+- **Alternatives**: Multiple viable options considered?
+- **Scope**: Cross-cutting and influences system design?
+
+If ALL true, suggest:
+
+📋 Architectural decision detected: <brief>
+   Document reasoning and tradeoffs? Run `/sp.adr <decision-title>`
+
+**Wait for user consent; NEVER auto-create ADRs.**
+
+Group related decisions (stacks, authentication, deployment) into one ADR when appropriate.
+
+---
+
+### Execution Contract (Every Request)
+
+1. **Confirm surface and success criteria** (one sentence)
+2. **List constraints, invariants, non-goals**
+3. **Produce the artifact** with acceptance checks inlined (checkboxes or tests)
+4. **Add follow-ups and risks** (max 3 bullets)
+5. **Create PHR** in appropriate subdirectory under `history/prompts/`
+6. **Surface ADR suggestion** if decisions meet significance test
+
+---
+
+### Minimum Acceptance Criteria
+
+- Clear, testable acceptance criteria included
+- Explicit error paths and constraints stated
+- Smallest viable change; no unrelated edits
+- Code references to modified/inspected files where relevant
+
+---
+
+### Spec-Kit Commands Reference
+
+| Command | Purpose | Output Location |
+|---------|---------|-----------------|
+| `/sp.constitution` | Define project principles | `constitution.md` or `.specify/memory/constitution.md` |
+| `/sp.spec <feature>` | Create feature specification | `specs/<feature>/spec.md` |
+| `/sp.plan <feature>` | Generate architecture plan | `specs/<feature>/plan.md` |
+| `/sp.tasks <feature>` | Break into testable tasks | `specs/<feature>/tasks.md` |
+| `/sp.implement` | Execute task list | Source files |
+| `/sp.clarify` | Resolve ambiguities | Updates to spec |
+| `/sp.adr <title>` | Document architectural decision | `history/adr/<id>-<slug>.adr.md` |
+| `/sp.phr` | Create Prompt History Record | `history/prompts/<route>/<id>-<slug>.prompt.md` |
+
+---
+
+### Project Structure (Spec-Kit Plus)
+
+```
+.
+├── constitution.md                # Project principles (root)
+├── CLAUDE.md                      # Lead agent rules (this file)
+├── requirements.md                # Hackathon requirements
+├── .specify/
+│   ├── memory/
+│   │   └── constitution.md        # Alternative constitution location
+│   ├── templates/
+│   │   ├── phr-template.prompt.md
+│   │   ├── adr-template.md
+│   │   ├── spec-template.md
+│   │   ├── plan-template.md
+│   │   └── tasks-template.md
+│   └── scripts/
+│       └── bash/
+│           └── create-phr.sh
+├── specs/                         # Feature specifications
+│   └── <feature>/
+│       ├── spec.md
+│       ├── plan.md
+│       └── tasks.md
+├── history/
+│   ├── prompts/                   # Prompt History Records
+│   │   ├── constitution/
+│   │   ├── general/
+│   │   └── <feature>/
+│   └── adr/                       # Architecture Decision Records
+├── .claude/
+│   ├── agents/                    # Subagents
+│   └── skills/                    # Skills (folders with SKILL.md)
+└── .github/
+    └── copilot-instructions.md    # Copilot rules (mirrors CLAUDE.md)
+```
+
+---
+
+### Authoritative Source Mandate
+
+- **MCP tools and CLI commands are FIRST-CLASS** for information gathering
+- **NEVER assume** a solution from internal knowledge
+- All methods require **external verification** (Context7, docs, etc.)
+- **PREFER CLI interactions** (running commands, capturing outputs) over manual file creation

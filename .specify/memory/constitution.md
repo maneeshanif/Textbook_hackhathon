@@ -1,55 +1,142 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Physical AI & Humanoid Robotics Textbook Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+<!-- These rules are absolute: the agent follows them unconditionally. -->
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### 1. Context7-First Development
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+**NEVER generate code from memory.** Before writing any code involving external libraries, ALWAYS:
+1. Call `mcp_upstash_conte_resolve-library-id` to get the exact library ID
+2. Call `mcp_upstash_conte_get-library-docs` to fetch current documentation
+3. Only then generate code using the fetched documentation
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+**Required lookups before coding:**
+- `docusaurus` for any site config, MDX, or React components
+- `fastapi` for any backend routes or API development
+- `qdrant-client` for vector store operations
+- `better-auth` for authentication flows
+- `openai` for AI/embedding features
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### 2. Subagent Delegation
 
-### [PRINCIPLE_6_NAME]
+Route ALL implementation tasks to the appropriate subagent. Never implement directly.
 
+| Domain | Subagent | Skills Used |
+|--------|----------|-------------|
+| Textbook content, MDX, chapters | `book-builder` | book-docusaurus, content-writer, chapter-formatting, visual-assets, accessibility-readability |
+| RAG backend, embeddings, chat | `rag-service` | rag-chatbot, ui-embed |
+| Auth, user prefs, sessions | `auth-personalization` | auth-personalization, localization-urdu |
+| CI/CD, deployment, monitoring | `ops-release` | book-docusaurus, rag-chatbot |
 
-[PRINCIPLE__DESCRIPTION]
+### 3. Test-Driven Development (TDD)
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Follow Red-Green-Refactor for ALL code:
+- **RED**: Write failing test first (pytest for Python, Jest for React)
+- **GREEN**: Minimum code to pass
+- **REFACTOR**: Clean up while tests stay green
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+No PR merges without passing tests. Coverage target: 80%+.
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### 4. Security Non-Negotiables
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- **NEVER** hardcode secrets, tokens, or API keys
+- **ALL** secrets go in `.env` files (gitignored)
+- **Document** all required environment variables in README
+- **Validate** all user inputs on both frontend and backend
+- **Use** parameterized queries (SQLAlchemy/asyncpg) - NO raw SQL string concatenation
+
+### 5. Accessibility First
+
+All content must be accessible:
+- **Semantic HTML** in all MDX components
+- **ARIA labels** on interactive elements
+- **Alt text** on all images and diagrams
+- **Keyboard navigation** support
+- **Multi-level explanations**: beginner → intermediate → advanced tracks
+
+### 6. Chapter Structure Standard
+
+All chapters follow the X.Y.Z numbering system:
+```
+X.0 - Chapter overview and learning objectives
+X.1 - Core concept introduction
+X.2-X.n - Topic sections
+X.n+1 - Hands-on exercises
+X.n+2 - Chapter summary and review
+```
+
+Required frontmatter for every MDX file:
+```yaml
+---
+title: "Chapter X.Y: Title"
+sidebar_position: Y
+tags: [topic1, topic2]
+difficulty: beginner|intermediate|advanced
+estimated_time: "XX minutes"
+---
+```
+
+### 7. Smallest Viable Diff
+
+- Make the **minimum change** needed to satisfy the requirement
+- **Do not** refactor unrelated code
+- **Do not** add features not explicitly requested
+- One PR = one logical change
+
+### 8. Documentation as Code
+
+- **README.md** in every major directory
+- **JSDoc/docstrings** on all public functions
+- **API contracts** defined before implementation
+- **ADRs** for all architectural decisions
+
+### 9. Localization-Ready
+
+All user-facing text must support translation:
+- Use translation keys, not hardcoded strings
+- Urdu translation pipeline via `localization-urdu` skill
+- RTL layout support in CSS
+
+### 10. Definition of Done
+
+A task is DONE only when:
+- [ ] Code compiles/lints without errors
+- [ ] All tests pass
+- [ ] Code reviewed (or self-reviewed with checklist)
+- [ ] Documentation updated
+- [ ] Accessibility checked
+- [ ] No console errors/warnings
+- [ ] Works in both English and Urdu (if user-facing)
+
+## Quick Reference Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/sp.spec <feature>` | Create feature specification |
+| `/sp.plan` | Generate implementation plan |
+| `/sp.tasks` | Break plan into testable tasks |
+| `/sp.implement` | Execute tasks (Red-Green-Refactor) |
+| `/sp.phr` | Record prompt history |
+| `/sp.adr <title>` | Document architectural decision |
+
+## Agent Bootstrap Checklist
+
+When starting any task:
+1. ✅ Read this constitution
+2. ✅ Read CLAUDE.md for project context
+3. ✅ Identify correct subagent for the task
+4. ✅ Load relevant skills
+5. ✅ Fetch library docs via Context7
+6. ✅ Proceed with implementation
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- Constitution changes require explicit user approval
+- ADRs document rationale for architectural decisions
+- PHRs maintain complete history of all prompts
+- Breaking changes to constitution increment major version
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+---
+
+**Version**: 1.0.0 | **Ratified**: 2025-01-13 | **Last Amended**: 2025-01-13
