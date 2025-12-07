@@ -80,6 +80,28 @@ class Settings(BaseSettings):
         description="Comma-separated list of allowed CORS origins"
     )
     
+    # JWT Authentication Configuration
+    jwt_secret_key: str = Field(
+        ...,
+        description="Secret key for JWT token signing (min 32 characters)"
+    )
+    jwt_algorithm: str = Field(
+        default="HS256",
+        description="Algorithm for JWT encoding"
+    )
+    jwt_access_token_expire_minutes: int = Field(
+        default=15,
+        description="Access token expiration time in minutes"
+    )
+    jwt_refresh_token_expire_days: int = Field(
+        default=7,
+        description="Refresh token expiration time in days"
+    )
+    jwt_refresh_token_remember_me_days: int = Field(
+        default=30,
+        description="Refresh token expiration when 'Remember Me' is enabled"
+    )
+    
     # Vector Search Configuration
     similarity_threshold: float = Field(
         default=0.7,

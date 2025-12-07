@@ -22,6 +22,11 @@ structlog==24.1.0
 # HTTP client for Better Auth
 httpx==0.26.0
 
+# Authentication & Security
+pyjwt==2.8.0
+passlib[bcrypt]==1.7.4
+slowapi==0.1.9  # Rate limiting
+
 # Testing
 pytest==7.4.4
 pytest-asyncio==0.23.3
