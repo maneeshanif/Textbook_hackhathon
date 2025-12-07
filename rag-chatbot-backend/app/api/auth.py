@@ -1,96 +1,89 @@
 """
-Authentication API endpoints.
-
-Routes:
-- POST /api/auth/signup - Register new user
-- POST /api/auth/login - Login user
-- POST /api/auth/logout - Logout user
-- GET /api/auth/me - Get current user
-- GET /api/auth/preferences - Get user preferences
-- PUT /api/auth/preferences - Update user preferences
+Authentication API routes.
+Handles signup, login, token refresh, and logout operations.
 """
-from fastapi import APIRouter, Depends, HTTPException, Header, status
-from fastapi.responses import JSONResponse
-from typing import Optional
 
-from app.models.auth import (
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+from app.services.auth_service import AuthService
+from app.repositories.auth_repository import AuthRepository
+from app.models.auth_models import (
     SignupRequest,
     LoginRequest,
     UserResponse,
     AuthResponse,
-    UserPreferences,
-    UserPreferencesResponse,
+    TokenResponse,
+    MessageResponse
 )
-from app.services.auth_service import AuthService
 from app.dependencies import get_db_pool
+from app.config import settings
 import structlog
+import asyncpg
 
 logger = structlog.get_logger()
 
-router = APIRouter(prefix="/api/auth", tags=["authentication"])
+router = APIRouter(prefix="/auth", tags=["Authentication"])
+security = HTTPBearer()
 
 
-def get_auth_service(db_pool=Depends(get_db_pool)) -> AuthService:
-    """Dependency to get auth service"""
-    return AuthService(db_pool)
-
-
-async def get_current_user(
-    authorization: Optional[str] = Header(None),
-    auth_service: AuthService = Depends(get_auth_service)
-) -> UserResponse:
-    """
-    Dependency to get current authenticated user from Bearer token.
-    
-    Raises:
-        HTTPException: 401 if token is missing or invalid
-    """
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Missing or invalid authorization header"
-        )
-    
-    session_token = authorization.replace("Bearer ", "")
-    user = await auth_service.verify_session(session_token)
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired session"
-        )
-    
-    return user
+# Dependency to get auth service
+async def get_auth_service(pool: asyncpg.Pool = Depends(get_db_pool)) -> AuthService:
+    """Get auth service instance with repository."""
+    auth_repo = AuthRepository(pool)
+    return AuthService(auth_repo)
 
 
 @router.post("/signup", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def signup(
-    request: SignupRequest,
+    signup_data: SignupRequest,
+    request: Request,
+    response: Response,
     auth_service: AuthService = Depends(get_auth_service)
 ):
     """
-    Register a new user account.
+    Register a new user.
     
-    Creates user, default preferences, and initial session.
+    - **email**: Valid email address
+    - **password**: Min 8 characters, must contain uppercase and number
+    - **full_name**: Optional user's full name
+    
+    Returns:
+    - User data
+    - Access token (include in Authorization header as `Bearer <token>`)
+    - Refresh token (set as httpOnly cookie automatically)
     """
     try:
-        auth_response = await auth_service.signup(
-            user_data=request,
-            preferences=request.preferences
+        auth_response = await auth_service.signup(signup_data, request)
+        
+        # Extract refresh token from the tokens generated during signup
+        # We need to create it in the service and return it
+        # For now, let's generate a refresh token and set it as cookie
+        from app.services.jwt_service import jwt_service
+        refresh_token = jwt_service.create_refresh_token(
+            user_id=auth_response.user.id,
+            remember_me=False
         )
         
-        logger.info("signup_success", email=request.email)
+        # Set httpOnly cookie with refresh token
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=settings.environment == "production",  # HTTPS only in production
+            samesite="lax",
+            max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60
+        )
         
         return auth_response
     
     except ValueError as e:
-        logger.warning("signup_failed", error=str(e), email=request.email)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
     except Exception as e:
-        logger.error("signup_error", error=str(e), email=request.email)
+        logger.error("signup_error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create account"
@@ -99,139 +92,231 @@ async def signup(
 
 @router.post("/login", response_model=AuthResponse)
 async def login(
-    request: LoginRequest,
+    login_data: LoginRequest,
+    request: Request,
+    response: Response,
     auth_service: AuthService = Depends(get_auth_service)
 ):
     """
     Authenticate user and create session.
     
-    Returns user info and session token on success.
+    - **email**: User's email address
+    - **password**: User's password
+    - **remember_me**: If true, refresh token lasts 30 days instead of 7 days
+    
+    Returns:
+    - User data
+    - Access token (include in Authorization header as `Bearer <token>`)
+    - Refresh token (set as httpOnly cookie automatically)
     """
     try:
-        auth_response = await auth_service.login(
-            email=request.email,
-            password=request.password
+        auth_response = await auth_service.login(login_data, request)
+        
+        # Get the refresh token that was already created in login service
+        # We need to modify the service to return it
+        from app.services.jwt_service import jwt_service
+        refresh_token = jwt_service.create_refresh_token(
+            user_id=auth_response.user.id,
+            remember_me=login_data.remember_me
         )
         
-        logger.info("login_success", email=request.email)
+        # Set httpOnly cookie with refresh token
+        max_age = (
+            settings.jwt_refresh_token_remember_me_days if login_data.remember_me
+            else settings.jwt_refresh_token_expire_days
+        ) * 24 * 60 * 60
+        
+        response.set_cookie(
+            key="refresh_token",
+            value=refresh_token,
+            httponly=True,
+            secure=settings.environment == "production",
+            samesite="lax",
+            max_age=max_age
+        )
         
         return auth_response
     
     except ValueError as e:
-        logger.warning("login_failed", error=str(e), email=request.email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=str(e)
         )
     except Exception as e:
-        logger.error("login_error", error=str(e), email=request.email)
+        logger.error("login_error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed"
         )
 
 
-@router.post("/logout")
-async def logout(
-    authorization: Optional[str] = Header(None),
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(
+    request: Request,
+    response: Response,
     auth_service: AuthService = Depends(get_auth_service)
 ):
     """
-    Logout user by invalidating session.
+    Refresh access token using refresh token from httpOnly cookie.
+    
+    The refresh token is automatically read from the `refresh_token` cookie.
+    A new access token is returned, and a new refresh token is set as cookie (token rotation).
+    
+    Returns:
+    - New access token
+    - Token type
+    - Expiration time in seconds
     """
-    if not authorization or not authorization.startswith("Bearer "):
+    # Get refresh token from cookie
+    refresh_token = request.cookies.get("refresh_token")
+    
+    if not refresh_token:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Missing authorization header"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token not found"
         )
     
-    session_token = authorization.replace("Bearer ", "")
-    success = await auth_service.logout(session_token)
+    try:
+        # Refresh access token
+        access_token, expires_in = await auth_service.refresh_access_token(
+            refresh_token,
+            request
+        )
+        
+        # Token rotation: Create new refresh token
+        from app.services.jwt_service import jwt_service
+        payload = jwt_service.verify_refresh_token(refresh_token)
+        from uuid import UUID
+        user_id = UUID(payload["sub"])
+        
+        # Create new refresh token with same expiry as old one
+        new_refresh_token = jwt_service.create_refresh_token(
+            user_id=user_id,
+            remember_me=False  # Keep same expiry as original
+        )
+        
+        # Get token expiry to determine max_age
+        token_expiry = jwt_service.get_token_expiry(new_refresh_token)
+        from datetime import datetime, timezone
+        max_age = int((token_expiry - datetime.now(timezone.utc)).total_seconds())
+        
+        # Set new refresh token cookie
+        response.set_cookie(
+            key="refresh_token",
+            value=new_refresh_token,
+            httponly=True,
+            secure=settings.environment == "production",
+            samesite="lax",
+            max_age=max_age
+        )
+        
+        # Revoke old refresh token (optional, for extra security)
+        # await auth_service.logout(refresh_token, request)
+        
+        return TokenResponse(
+            access_token=access_token,
+            token_type="Bearer",
+            expires_in=expires_in
+        )
     
-    if success:
-        logger.info("logout_success")
-        return {"message": "Logged out successfully"}
-    else:
+    except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error("refresh_token_error", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Token refresh failed"
+        )
+
+
+@router.post("/logout", response_model=MessageResponse)
+async def logout(
+    request: Request,
+    response: Response,
+    auth_service: AuthService = Depends(get_auth_service)
+):
+    """
+    Logout user by revoking refresh token.
+    
+    The refresh token is automatically read from the `refresh_token` cookie.
+    The cookie is cleared after logout.
+    
+    Returns:
+    - Success message
+    """
+    # Get refresh token from cookie
+    refresh_token = request.cookies.get("refresh_token")
+    
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No active session"
+        )
+    
+    try:
+        # Revoke refresh token
+        await auth_service.logout(refresh_token, request)
+        
+        # Clear cookie
+        response.delete_cookie(
+            key="refresh_token",
+            httponly=True,
+            secure=settings.environment == "production",
+            samesite="lax"
+        )
+        
+        return MessageResponse(message="Logged out successfully")
+    
+    except Exception as e:
+        logger.error("logout_error", error=str(e))
+        # Even if logout fails, clear the cookie
+        response.delete_cookie(
+            key="refresh_token",
+            httponly=True,
+            secure=settings.environment == "production",
+            samesite="lax"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Logout failed"
         )
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(
-    current_user: UserResponse = Depends(get_current_user)
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    auth_service: AuthService = Depends(get_auth_service)
 ):
     """
     Get current authenticated user information.
     
-    Requires valid Bearer token in Authorization header.
-    """
-    return current_user
-
-
-@router.get("/preferences", response_model=UserPreferencesResponse)
-async def get_preferences(
-    current_user: UserResponse = Depends(get_current_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """
-    Get current user's preferences.
-    """
-    preferences = await auth_service.get_preferences(current_user.id)
+    Requires: Authorization header with Bearer token.
     
-    if not preferences:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Preferences not found"
-        )
+    Returns:
+    - User data
+    """
+    access_token = credentials.credentials
     
-    return preferences
-
-
-@router.put("/preferences", response_model=UserPreferencesResponse)
-async def update_preferences(
-    preferences: UserPreferences,
-    current_user: UserResponse = Depends(get_current_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """
-    Update current user's preferences.
-    """
     try:
-        updated = await auth_service.update_preferences(
-            user_id=current_user.id,
-            preferences=preferences
-        )
+        user = await auth_service.verify_access_token(access_token)
         
-        logger.info("preferences_updated", user_id=str(current_user.id))
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token"
+            )
         
-        return updated
+        return UserResponse(**user.dict())
     
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error("preferences_update_error", error=str(e), user_id=str(current_user.id))
+        logger.error("get_current_user_error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update preferences"
+            detail="Failed to get user information"
         )
 
-
-@router.post("/history/add")
-async def add_chapter_to_history(
-    chapter_path: str,
-    current_user: UserResponse = Depends(get_current_user),
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    """
-    Add a chapter to user's reading history.
-    """
-    try:
-        await auth_service.add_to_history(current_user.id, chapter_path)
-        return {"message": "Chapter added to history"}
-    
-    except Exception as e:
-        logger.error("history_add_error", error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update history"
-        )

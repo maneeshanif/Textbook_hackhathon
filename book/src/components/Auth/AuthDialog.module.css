@@ -1,0 +1,153 @@
+/**
+ * AuthDialog CSS Module
+ * Docusaurus-compatible styling for authentication dialog
+ */
+
+.dialogOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.75);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.dialogContent {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 10000;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 425px;
+  background: var(--ifm-background-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.2s ease-out;
+}
+
+.dialogHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.dialogTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ifm-font-color-base);
+  margin: 0;
+}
+
+.dialogDescription {
+  font-size: 0.875rem;
+  color: var(--ifm-color-emphasis-700);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.closeButton {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  padding: 4px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  color: var(--ifm-font-color-base);
+}
+
+.closeButton:hover {
+  opacity: 1;
+  background: var(--ifm-color-emphasis-200);
+}
+
+.closeButton:focus {
+  outline: 2px solid var(--ifm-color-primary);
+  outline-offset: 2px;
+}
+
+.tabsList {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  background: var(--ifm-color-emphasis-100);
+  padding: 4px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+}
+
+.tabTrigger {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--ifm-color-emphasis-700);
+}
+
+.tabTrigger:hover {
+  background: var(--ifm-color-emphasis-200);
+}
+
+.tabTrigger[data-state="active"] {
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.tabContent {
+  margin-top: 16px;
+}
+
+.errorMessage {
+  margin-top: 12px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: var(--ifm-color-danger);
+  background: var(--ifm-color-danger-contrast-background);
+  border-radius: 4px;
+  border-left: 3px solid var(--ifm-color-danger);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .dialogContent {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .dialogHeader {
+    text-align: left;
+  }
+}

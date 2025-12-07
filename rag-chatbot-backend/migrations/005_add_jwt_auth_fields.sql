@@ -2,9 +2,10 @@
 -- Description: Add JWT authentication fields to users table and create refresh_tokens table
 -- Date: 2025-12-07
 
--- Add password hash and role to users table for JWT authentication
-ALTER TABLE users 
+-- Add password hash, full_name, and role to users table for JWT authentication
+ALTER TABLE users
 ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255),
+ADD COLUMN IF NOT EXISTS full_name VARCHAR(255),
 ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user' CHECK (role IN ('user', 'admin', 'moderator'));
 
 -- Create index on role for efficient queries

@@ -34,7 +34,14 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// Use window.location for API URL detection (works in browser)
+const getApiBaseUrl = () => {
+  if (typeof window === 'undefined') return 'http://localhost:8000';
+  // In production, API is usually on same domain or can be configured via window
+  return (window as any).__API_URL__ || 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 // Create axios instance with credentials
 const api = axios.create({

@@ -1,0 +1,266 @@
+/**
+ * Fallback styles for Shadcn UI components in Docusaurus
+ * Provides basic styling when Tailwind classes aren't processed
+ */
+
+/* Reset Tailwind-dependent classes */
+[class*="bg-background"] {
+  background-color: var(--ifm-background-color) !important;
+}
+
+[class*="text-foreground"] {
+  color: var(--ifm-font-color-base) !important;
+}
+
+[class*="border"] {
+  border-color: var(--ifm-color-emphasis-300) !important;
+}
+
+[class*="text-muted-foreground"] {
+  color: var(--ifm-color-emphasis-700) !important;
+}
+
+/* Position utilities */
+.fixed {
+  position: fixed !important;
+}
+
+.absolute {
+  position: absolute !important;
+}
+
+.relative {
+  position: relative !important;
+}
+
+.inset-0 {
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+}
+
+/* Z-index */
+[class*="z-50"] {
+  z-index: 9999 !important;
+}
+
+[class*="z-\["] {
+  z-index: 10000 !important;
+}
+
+/* Flex utilities */
+.flex {
+  display: flex !important;
+}
+
+.grid {
+  display: grid !important;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Spacing */
+.gap-4 {
+  gap: 1rem !important;
+}
+
+.gap-2 {
+  gap: 0.5rem !important;
+}
+
+.p-6 {
+  padding: 1.5rem !important;
+}
+
+.p-4 {
+  padding: 1rem !important;
+}
+
+.space-y-4 > * + * {
+  margin-top: 1rem !important;
+}
+
+.space-y-2 > * + * {
+  margin-top: 0.5rem !important;
+}
+
+/* Width */
+.w-full {
+  width: 100% !important;
+}
+
+.w-1\/3 {
+  width: 33.333333% !important;
+}
+
+.w-2\/3 {
+  width: 66.666667% !important;
+}
+
+.max-w-lg {
+  max-width: 32rem !important;
+}
+
+/* Border radius */
+.rounded-lg, .sm\:rounded-lg {
+  border-radius: 8px !important;
+}
+
+.rounded-sm {
+  border-radius: 4px !important;
+}
+
+.rounded-md {
+  border-radius: 6px !important;
+}
+
+/* Shadow */
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Text sizes */
+.text-lg {
+  font-size: 1.125rem !important;
+  line-height: 1.75rem !important;
+}
+
+.text-sm {
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+}
+
+.text-xs {
+  font-size: 0.75rem !important;
+  line-height: 1rem !important;
+}
+
+/* Font weight */
+.font-semibold {
+  font-weight: 600 !important;
+}
+
+.font-medium {
+  font-weight: 500 !important;
+}
+
+/* Text align */
+.text-center {
+  text-align: center !important;
+}
+
+/* Transition */
+.transition-opacity {
+  transition-property: opacity !important;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-duration: 150ms !important;
+}
+
+.transition-all {
+  transition-property: all !important;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition-duration: 150ms !important;
+}
+
+.duration-200 {
+  transition-duration: 200ms !important;
+}
+
+.duration-300 {
+  transition-duration: 300ms !important;
+}
+
+/* Opacity */
+.opacity-70 {
+  opacity: 0.7 !important;
+}
+
+/* Hover states */
+.hover\:opacity-100:hover {
+  opacity: 1 !important;
+}
+
+.hover\:underline:hover {
+  text-decoration: underline !important;
+}
+
+/* Ring (focus) */
+.focus\:outline-none:focus {
+  outline: 2px solid transparent !important;
+  outline-offset: 2px !important;
+}
+
+.focus\:ring-2:focus {
+  box-shadow: 0 0 0 2px var(--ifm-color-primary) !important;
+}
+
+/* Colors */
+.bg-red-500, [class*="bg-red"] {
+  background-color: var(--ifm-color-danger) !important;
+}
+
+.bg-yellow-500, [class*="bg-yellow"] {
+  background-color: var(--ifm-color-warning) !important;
+}
+
+.bg-green-500, [class*="bg-green"] {
+  background-color: var(--ifm-color-success) !important;
+}
+
+.text-red-600, [class*="text-red"] {
+  color: var(--ifm-color-danger) !important;
+}
+
+.text-blue-600, [class*="text-blue"] {
+  color: var(--ifm-color-primary) !important;
+}
+
+.text-gray-600, [class*="text-gray-6"] {
+  color: var(--ifm-color-emphasis-700) !important;
+}
+
+.text-gray-400, [class*="text-gray-4"] {
+  color: var(--ifm-color-emphasis-600) !important;
+}
+
+.bg-gray-200, [class*="bg-gray-2"] {
+  background-color: var(--ifm-color-emphasis-200) !important;
+}
+
+/* Overflow */
+.overflow-hidden {
+  overflow: hidden !important;
+}
+
+/* Height */
+.h-1 {
+  height: 0.25rem !important;
+}
+
+.h-4 {
+  height: 1rem !important;
+}
+
+/* Cursor */
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+/* Capitalize */
+.capitalize {
+  text-transform: capitalize !important;
+}
+
+/* Responsive */
+@media (min-width: 640px) {
+  .sm\:max-w-\[425px\] {
+    max-width: 425px !important;
+  }
+
+  .sm\:text-left {
+    text-align: left !important;
+  }
+}

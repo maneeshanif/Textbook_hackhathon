@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useGuest } from '@/contexts/GuestContext';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useGuest, GUEST_INTERACTION_LIMIT } from '@/contexts/GuestContext';
 import { SignUpForm } from './SignUpForm';
 import { LoginForm } from './LoginForm';
+import styles from './AuthDialog.module.css';
 
 interface AuthDialogProps {
   open: boolean;
@@ -14,8 +13,20 @@ interface AuthDialogProps {
 
 export function AuthDialog({ open, onOpenChange, defaultTab = 'signup' }: AuthDialogProps) {
   const { error, clearError } = useAuth();
-  const { isLimitReached, interactionCount, GUEST_INTERACTION_LIMIT } = useGuest();
+  const { isLimitReached, interactionCount } = useGuest();
   const [activeTab, setActiveTab] = useState<string>(defaultTab);
+
+  // Prevent body scroll when dialog is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
@@ -28,14 +39,52 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signup' }: AuthDi
     onOpenChange(false);
   };
 
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleOpenChange(false);
+    }
+  };
+
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
+    <>
+      {/* Overlay */}
+      <div
+        className={styles.dialogOverlay}
+        onClick={handleOverlayClick}
+        role="presentation"
+      />
+
+      {/* Dialog Content */}
+      <div className={styles.dialogContent} role="dialog" aria-modal="true">
+        {/* Close Button */}
+        <button
+          className={styles.closeButton}
+          onClick={() => handleOpenChange(false)}
+          aria-label="Close"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+
+        {/* Header */}
+        <div className={styles.dialogHeader}>
+          <h2 className={styles.dialogTitle}>
             {isLimitReached ? 'Unlock Unlimited Questions' : 'Welcome to Physical AI Textbook'}
-          </DialogTitle>
-          <DialogDescription>
+          </h2>
+          <p className={styles.dialogDescription}>
             {isLimitReached ? (
               <>
                 You've explored {interactionCount} questions as a guest. Create an account to continue your AI learning journey!
@@ -43,30 +92,44 @@ export function AuthDialog({ open, onOpenChange, defaultTab = 'signup' }: AuthDi
             ) : (
               'Sign up or log in to save your progress and access personalized features.'
             )}
-          </DialogDescription>
-        </DialogHeader>
+          </p>
+        </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            <TabsTrigger value="login">Log In</TabsTrigger>
-          </TabsList>
+        {/* Tabs */}
+        <div className={styles.tabsList}>
+          <button
+            className={styles.tabTrigger}
+            data-state={activeTab === 'signup' ? 'active' : 'inactive'}
+            onClick={() => setActiveTab('signup')}
+          >
+            Sign Up
+          </button>
+          <button
+            className={styles.tabTrigger}
+            data-state={activeTab === 'login' ? 'active' : 'inactive'}
+            onClick={() => setActiveTab('login')}
+          >
+            Log In
+          </button>
+        </div>
 
-          <TabsContent value="signup">
+        {/* Tab Content */}
+        <div className={styles.tabContent}>
+          {activeTab === 'signup' && (
             <SignUpForm onSuccess={handleSuccess} onSwitchToLogin={() => setActiveTab('login')} />
-          </TabsContent>
-
-          <TabsContent value="login">
+          )}
+          {activeTab === 'login' && (
             <LoginForm onSuccess={handleSuccess} onSwitchToSignup={() => setActiveTab('signup')} />
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
 
+        {/* Error Message */}
         {error && (
-          <div className="mt-2 text-sm text-red-600 dark:text-red-400">
+          <div className={styles.errorMessage}>
             {error}
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </div>
+    </>
   );
 }

@@ -20,19 +20,25 @@ class PasswordService:
     def hash_password(password: str) -> str:
         """
         Hash a plain-text password using bcrypt.
-        
+
         Args:
             password: Plain-text password string
-        
+
         Returns:
             Bcrypt hashed password string
-        
+
         Raises:
             ValueError: If password is empty
         """
         if not password:
             raise ValueError("Password cannot be empty")
-        
+
+        # Bcrypt has a 72-byte limit, truncate if necessary
+        # Encode to UTF-8 to get byte length
+        password_bytes = password.encode('utf-8')
+        if len(password_bytes) > 72:
+            password = password_bytes[:72].decode('utf-8', errors='ignore')
+
         hashed = pwd_context.hash(password)
         logger.debug("password_hashed")
         return hashed

@@ -22,23 +22,11 @@ from app.models.schemas import (
     ErrorResponse
 )
 from app.services.rag import rag_service
-from app.services.auth_service import AuthService
 from app.database import db_pool
 from app.middleware.logging import log_info, log_error, get_request_id
 
 
 router = APIRouter()
-
-
-async def get_current_user_optional(authorization: Optional[str] = Header(None)):
-    """Get current user if authenticated, None otherwise."""
-    if not authorization or not authorization.startswith("Bearer "):
-        return None
-    
-    session_token = authorization.replace("Bearer ", "")
-    auth_service = AuthService(db_pool.pool)
-    user = await auth_service.verify_session(session_token)
-    return user
 
 
 def hash_session_token(token: str) -> str:
@@ -48,8 +36,7 @@ def hash_session_token(token: str) -> str:
 
 async def get_or_create_session(
     session_token: Optional[str],
-    language: str,
-    user_id: Optional[str] = None
+    language: str
 ) -> tuple[str, str]:
     """
     Get existing session or create new one.
@@ -80,14 +67,13 @@ async def get_or_create_session(
     # Create new session
     new_token = session_token or str(uuid.uuid4())
     hashed_token = hash_session_token(new_token)
-    
+
     session_id = await db_pool.fetchval(
         """
-        INSERT INTO chat_sessions (user_id, session_token, language)
-        VALUES ($1, $2, $3)
+        INSERT INTO chat_sessions (session_token, language)
+        VALUES ($1, $2)
         RETURNING id
         """,
-        uuid.UUID(user_id) if user_id else None,
         hashed_token,
         language
     )
@@ -126,21 +112,17 @@ async def save_message(
 @router.post("/chat/query")
 async def chat_query(
     request: Request,
-    query_request: ChatQueryRequest,
-    authorization: Optional[str] = Header(None)
+    query_request: ChatQueryRequest
 ):
     """
-    Process a chat query with streaming response.
-    
-    Supports both authenticated and anonymous users.
-    Authenticated users get personalized responses based on preferences.
-    
+    Process a chat query with streaming response (guest mode).
+
     Request:
         - query: User's question (1-2000 chars)
         - session_token: Optional session token for history
         - language: Language preference ('en' or 'ur')
         - selected_text: Optional text selection for context
-    
+
     Response:
         Server-Sent Events stream with:
         - data: Response chunks
@@ -148,38 +130,19 @@ async def chat_query(
         - metadata: Citations and session info
     """
     request_id = get_request_id(request)
-    
-    # Get authenticated user if present
-    current_user = await get_current_user_optional(authorization)
-    user_id = str(current_user.id) if current_user else None
-    
-    # Get user preferences if authenticated
-    user_preferences = None
-    if current_user:
-        auth_service = AuthService(db_pool.pool)
-        prefs = await auth_service.get_preferences(current_user.id)
-        if prefs:
-            user_preferences = {
-                "difficulty": prefs.difficulty,
-                "focus_tags": prefs.focus_tags,
-                "preferred_language": prefs.preferred_language
-            }
-    
+
     log_info(
         "chat_query_started",
         query=query_request.query[:100],
         language=query_request.language,
-        has_selection=query_request.selected_text is not None,
-        authenticated=current_user is not None,
-        user_id=user_id
+        has_selection=query_request.selected_text is not None
     )
     
     try:
         # Get or create session
         session_id, session_token = await get_or_create_session(
             query_request.session_token,
-            query_request.language,
-            user_id=user_id
+            query_request.language
         )
         
         # Save user message
@@ -189,12 +152,11 @@ async def chat_query(
             content=query_request.query
         )
         
-        # Execute RAG pipeline with user preferences
+        # Execute RAG pipeline
         rag_result, response_stream = await rag_service.query(
             query=query_request.query,
             language=query_request.language,
-            selected_text=query_request.selected_text,
-            user_preferences=user_preferences
+            selected_text=query_request.selected_text
         )
         
         async def event_generator():
@@ -431,54 +393,4 @@ async def submit_feedback(request: Request, feedback: FeedbackRequest):
         )
 
 
-@router.post("/chat/migrate")
-async def migrate_session(migrate_request: SessionMigrateRequest):
-    """
-    Migrate anonymous session to authenticated user.
-    
-    Request:
-        - session_token: Anonymous session token
-        - user_id: Authenticated user UUID
-    
-    Response:
-        Success message
-    """
-    log_info(
-        "migrate_session_started",
-        user_id=migrate_request.user_id
-    )
-    
-    try:
-        # Find session
-        hashed_token = hash_session_token(migrate_request.session_token)
-        session = await db_pool.fetchrow(
-            "SELECT id FROM chat_sessions WHERE session_token = $1",
-            hashed_token
-        )
-        
-        if not session:
-            raise HTTPException(status_code=404, detail="Session not found")
-        
-        # Update session with user_id
-        await db_pool.execute(
-            """
-            UPDATE chat_sessions
-            SET user_id = $1, session_token = NULL
-            WHERE id = $2
-            """,
-            uuid.UUID(migrate_request.user_id),
-            session["id"]
-        )
-        
-        log_info("migrate_session_completed")
-        
-        return {"success": True, "message": "Session migrated successfully"}
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        log_error("migrate_session_failed", error=str(e))
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to migrate session"
-        )
+# Session migration removed - guest mode only

@@ -1,8 +1,5 @@
-"""
-Better Auth Database Migration
-
-Creates tables for authentication and user preferences.
-"""
+-- Better Auth Database Migration
+-- Creates tables for authentication and user preferences.
 
 -- Users table (Better Auth standard)
 CREATE TABLE IF NOT EXISTS users (
@@ -63,8 +60,10 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_preferences_updated_at ON user_preferences;
 CREATE TRIGGER update_user_preferences_updated_at BEFORE UPDATE ON user_preferences
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

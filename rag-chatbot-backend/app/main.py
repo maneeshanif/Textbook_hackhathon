@@ -12,7 +12,7 @@ from app.database import db_pool
 from app.qdrant_client import qdrant_client
 from app.gemini_client import gemini_client
 from app.middleware.logging import RequestTracingMiddleware, log_info, log_error
-from app.api import health, chat, auth
+from app.api import health, chat
 
 
 @asynccontextmanager
@@ -95,8 +95,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # Add request tracing middleware
@@ -105,7 +107,7 @@ app.add_middleware(RequestTracingMiddleware)
 # Include routers
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(chat.router, prefix="/api", tags=["chat"])
-app.include_router(auth.router, tags=["auth"])
+# Auth removed - guest mode only
 
 
 @app.get("/")
