@@ -14,6 +14,10 @@ import {
   setSessionLanguage 
 } from './utils/session';
 import type { ChatMessage } from './types';
+import { useAuth } from '@/contexts/AuthContext';
+import { useGuest } from '@/contexts/GuestContext';
+import { GuestLimitBadge } from './GuestLimitBadge';
+import { AuthDialog } from '../Auth/AuthDialog';
 import styles from './ChatWidget.module.css';
 
 export function ChatWidget() {
@@ -22,10 +26,24 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sessionToken, setSessionTokenState] = useState<string | null>(null);
   const [language, setLanguageState] = useState<string>('en');
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+
+  const { user } = useAuth();
+  const { incrementCount, isLimitReached } = useGuest();
 
   const handleMessageComplete = useCallback((message: ChatMessage) => {
     setMessages((prev) => [...prev, message]);
-  }, []);
+    
+    // Increment guest counter after bot response (only for non-authenticated users)
+    if (!user) {
+      incrementCount();
+      
+      // Open auth dialog if limit reached
+      if (isLimitReached) {
+        setAuthDialogOpen(true);
+      }
+    }
+  }, [user, incrementCount, isLimitReached]);
 
   const { sendQuery, isLoading, error, currentMessage, citations } = useStreamingQuery(
     language,
@@ -40,6 +58,12 @@ export function ChatWidget() {
 
   const handleSendMessage = useCallback(
     async (content: string) => {
+      // Check guest limit before sending (block if limit reached and not authenticated)
+      if (!user && isLimitReached) {
+        setAuthDialogOpen(true);
+        return;
+      }
+
       // Add user message immediately
       const userMessage: ChatMessage = {
         id: `user-${Date.now()}`,
@@ -60,7 +84,7 @@ export function ChatWidget() {
       // Send query to backend
       await sendQuery(content, token);
     },
-    [sessionToken, sendQuery]
+    [user, isLimitReached, sessionToken, sendQuery]
   );
 
   const handleCitationClick = useCallback((url: string) => {
@@ -119,6 +143,7 @@ export function ChatWidget() {
           <div className={styles.header}>
             <div className={styles.headerContent}>
               <h3 className={styles.title}>Textbook Assistant</h3>
+              <GuestLimitBadge />
               <div className={styles.languageSelector}>
                 <button
                   className={`${styles.langButton} ${language === 'en' ? styles.active : ''}`}
@@ -204,6 +229,12 @@ export function ChatWidget() {
           />
         </div>
       )}
+
+      {/* Auth Dialog */}
+      <AuthDialog
+        open={authDialogOpen}
+        onOpenChange={setAuthDialogOpen}
+      />
     </>
   );
 }

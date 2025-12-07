@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "axios": "^1.13.2",
+    "better-auth": "^1.4.5",
+    "js-cookie": "^3.0.5",
+    "react-hook-form": "^7.68.0",
+    "zod": "^4.1.13"
+  }
+}

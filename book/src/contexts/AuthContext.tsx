@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import axios from 'axios';
 
 interface User {
   id: string;
   email: string;
-  name: string | null;
+  fullName: string | null;
+  role: string;
   emailVerified: boolean;
   createdAt: string;
 }
@@ -17,193 +19,249 @@ interface UserPreferences {
 
 interface AuthContextType {
   user: User | null;
+  accessToken: string | null;
   preferences: UserPreferences | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name?: string) => Promise<void>;
+  error: string | null;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  signup: (email: string, password: string, fullName?: string) => Promise<void>;
   logout: () => Promise<void>;
   updatePreferences: (prefs: UserPreferences) => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshToken: () => Promise<void>;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+// Create axios instance with credentials
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true, // Important for httpOnly cookies
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const getStoredToken = () => localStorage.getItem('auth_token');
-  const setStoredToken = (token: string) => localStorage.setItem('auth_token', token);
-  const removeStoredToken = () => localStorage.removeItem('auth_token');
+  const isAuthenticated = !!user && !!accessToken;
 
-  const fetchUser = async () => {
-    const token = getStoredToken();
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-
+  // Decode JWT to get expiry time
+  const getTokenExpiry = (token: string): number | null => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        await fetchPreferences(token);
-      } else {
-        removeStoredToken();
-        setUser(null);
-      }
-    } catch (error) {
-      console.error('Failed to fetch user:', error);
-      removeStoredToken();
-      setUser(null);
-    } finally {
-      setIsLoading(false);
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return payload.exp * 1000; // Convert to milliseconds
+    } catch {
+      return null;
     }
   };
 
+  // Refresh token function
+  const refreshToken = useCallback(async () => {
+    try {
+      const response = await api.post('/api/auth/refresh');
+      const { accessToken: newToken } = response.data;
+      
+      setAccessToken(newToken);
+
+      // Fetch user data if we don't have it
+      if (!user) {
+        const userResponse = await api.get('/api/auth/me', {
+          headers: { Authorization: `Bearer ${newToken}` },
+        });
+        setUser(userResponse.data);
+      }
+
+      setIsLoading(false);
+      return newToken;
+    } catch (err) {
+      setAccessToken(null);
+      setUser(null);
+      setIsLoading(false);
+      throw err;
+    }
+  }, [user]);
+
+  // Auto-refresh token before expiry
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const expiry = getTokenExpiry(accessToken);
+    if (!expiry) return;
+
+    // Refresh 60 seconds before expiry
+    const refreshTime = expiry - Date.now() - 60000;
+    
+    if (refreshTime <= 0) {
+      refreshToken();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      refreshToken();
+    }, refreshTime);
+
+    return () => clearTimeout(timer);
+  }, [accessToken, refreshToken]);
+
+  // Initialize: Try to refresh token on mount
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        await refreshToken();
+      } catch {
+        // No valid session
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
+  }, []);
+
+  // Fetch user preferences
   const fetchPreferences = async (token: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/preferences`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      const response = await api.get('/api/auth/preferences', {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.ok) {
-        const prefs = await response.json();
-        setPreferences({
-          difficulty: prefs.difficulty,
-          focusTags: prefs.focus_tags,
-          preferredLanguage: prefs.preferred_language,
-          lastChapters: prefs.last_chapters,
-        });
-      }
+      const prefs = response.data;
+      setPreferences({
+        difficulty: prefs.difficulty,
+        focusTags: prefs.focus_tags || [],
+        preferredLanguage: prefs.preferred_language || 'en',
+        lastChapters: prefs.last_chapters || [],
+      });
     } catch (error) {
       console.error('Failed to fetch preferences:', error);
     }
   };
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
+  const login = async (email: string, password: string, rememberMe = false) => {
+    setIsLoading(true);
+    setError(null);
 
-  const login = async (email: string, password: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const response = await api.post('/api/auth/login', {
+        email,
+        password,
+        rememberMe,
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Login failed');
+      const { user: userData, accessToken: token } = response.data;
+      setUser(userData);
+      setAccessToken(token);
+      setError(null);
+
+      // Fetch preferences in background
+      fetchPreferences(token);
+    } catch (err: any) {
+      const message = err.response?.data?.detail || 'Login failed. Please try again.';
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setIsLoading(false);
     }
-
-    const data = await response.json();
-    setStoredToken(data.session_token);
-    setUser(data.user);
-    await fetchPreferences(data.session_token);
   };
 
-  const signup = async (email: string, password: string, name?: string) => {
-    const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password, name }),
-    });
+  const signup = async (email: string, password: string, fullName?: string) => {
+    setIsLoading(true);
+    setError(null);
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Signup failed');
+    try {
+      const response = await api.post('/api/auth/signup', {
+        email,
+        password,
+        fullName,
+      });
+
+      const { user: userData, accessToken: token } = response.data;
+      setUser(userData);
+      setAccessToken(token);
+      setError(null);
+
+      // Initialize default preferences
+      setPreferences({
+        difficulty: 'beginner',
+        focusTags: [],
+        preferredLanguage: 'en',
+        lastChapters: [],
+      });
+    } catch (err: any) {
+      const message = err.response?.data?.detail || 'Registration failed. Please try again.';
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setIsLoading(false);
     }
-
-    const data = await response.json();
-    setStoredToken(data.session_token);
-    setUser(data.user);
-    await fetchPreferences(data.session_token);
   };
 
   const logout = async () => {
-    const token = getStoredToken();
-    if (token) {
-      try {
-        await fetch(`${API_BASE_URL}/api/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-      } catch (error) {
-        console.error('Logout request failed:', error);
-      }
-    }
+    setIsLoading(true);
+    setError(null);
 
-    removeStoredToken();
-    setUser(null);
-    setPreferences(null);
+    try {
+      await api.post('/api/auth/logout', {}, {
+        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setUser(null);
+      setAccessToken(null);
+      setPreferences(null);
+      setIsLoading(false);
+    }
   };
 
   const updatePreferences = async (prefs: UserPreferences) => {
-    const token = getStoredToken();
-    if (!token) throw new Error('Not authenticated');
-
-    const response = await fetch(`${API_BASE_URL}/api/auth/preferences`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        difficulty: prefs.difficulty,
-        focus_tags: prefs.focusTags,
-        preferred_language: prefs.preferredLanguage,
-        last_chapters: prefs.lastChapters,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to update preferences');
+    if (!accessToken) {
+      throw new Error('Not authenticated');
     }
 
-    const updated = await response.json();
-    setPreferences({
-      difficulty: updated.difficulty,
-      focusTags: updated.focus_tags,
-      preferredLanguage: updated.preferred_language,
-      lastChapters: updated.last_chapters,
-    });
+    try {
+      await api.put(
+        '/api/auth/preferences',
+        {
+          difficulty: prefs.difficulty,
+          focus_tags: prefs.focusTags,
+          preferred_language: prefs.preferredLanguage,
+          last_chapters: prefs.lastChapters,
+        },
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+
+      setPreferences(prefs);
+    } catch (error) {
+      console.error('Failed to update preferences:', error);
+      throw error;
+    }
   };
 
-  const refreshUser = async () => {
-    await fetchUser();
-  };
+  const clearError = () => setError(null);
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        accessToken,
         preferences,
-        isAuthenticated: !!user,
+        isAuthenticated,
         isLoading,
+        error,
         login,
         signup,
         logout,
         updatePreferences,
-        refreshUser,
+        refreshToken,
+        clearError,
       }}
     >
       {children}
@@ -211,9 +269,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
