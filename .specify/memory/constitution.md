@@ -46,6 +46,25 @@ No PR merges without passing tests. Coverage target: 80%+.
 - **Validate** all user inputs on both frontend and backend
 - **Use** parameterized queries (SQLAlchemy/asyncpg) - NO raw SQL string concatenation
 
+#### Authentication & Authorization Rules
+
+- **JWT Tokens**: 
+  - Access tokens: Short-lived (15 min), stored in memory (React Context/state)
+  - Refresh tokens: Long-lived (7 days), httpOnly cookies only
+  - NEVER store tokens in localStorage (XSS vulnerability)
+- **Password Security**:
+  - bcrypt hashing with salt rounds ≥ 12
+  - Minimum 8 characters with uppercase, number requirement
+  - Implement rate limiting (5 attempts per 15 min)
+- **Session Management**:
+  - Rotate refresh tokens on every use
+  - Bind sessions to device fingerprint
+  - Implement auto-logout on suspicious activity
+- **CORS & CSRF**:
+  - Whitelist specific origins (no wildcard in production)
+  - SameSite=Strict for all cookies
+  - CSRF tokens for state-changing operations
+
 ### 5. Accessibility First
 
 All content must be accessible:

@@ -2,8 +2,16 @@
 
 **Feature Branch**: `003-rag-chatbot`  
 **Created**: 2025-12-06  
-**Status**: Draft  
+**Status**: Active Development  
+**Dependencies**: 004-better-auth-implementation (for user authentication)
 **Input**: User description: "Build a Retrieval-Augmented Generation (RAG) chatbot embedded in the Physical AI textbook that answers questions about book content, handles user-selected text queries, stores chat history in database, and supports authenticated users"
+
+## ⚠️ Authentication Integration Notice
+
+This feature now integrates with the Better Auth system (Feature 004). Key changes:
+- Guest users: 10 free chatbot interactions before requiring authentication
+- Authenticated users: Unlimited interactions with persistent history
+- See `/specs/004-better-auth/spec.md` for complete auth architecture
 
 ## User Scenarios & Testing
 
