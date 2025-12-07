@@ -9,6 +9,7 @@ qdrant-client==1.7.0
 
 # AI/ML
 google-generativeai==0.3.2
+tiktoken==0.5.2  # For text chunking in MDX parser
 
 # Configuration and environment
 pydantic==2.5.3

@@ -79,32 +79,32 @@ This task list organizes implementation work by user story to enable independent
 
 ### Database Foundation
 
-- [ ] T014 Create SQL migration for `users` table in `rag-chatbot-backend/migrations/001_create_users.sql`
-- [ ] T015 Create SQL migration for `chat_sessions` table with indexes in `rag-chatbot-backend/migrations/002_create_sessions.sql`
-- [ ] T016 Create SQL migration for `chat_messages` table with indexes in `rag-chatbot-backend/migrations/003_create_messages.sql`
-- [ ] T017 Create SQL migration for `feedback` table in `rag-chatbot-backend/migrations/004_create_feedback.sql`
+- [x] T014 Create SQL migration for `users` table in `rag-chatbot-backend/migrations/001_create_users.sql`
+- [x] T015 Create SQL migration for `chat_sessions` table with indexes in `rag-chatbot-backend/migrations/002_create_sessions.sql`
+- [x] T016 Create SQL migration for `chat_messages` table with indexes in `rag-chatbot-backend/migrations/003_create_messages.sql`
+- [x] T017 Create SQL migration for `feedback` table in `rag-chatbot-backend/migrations/004_create_feedback.sql`
 - [ ] T018 Run all migrations against Neon database and verify schema
 
 ### Core Backend Services
 
-- [ ] T019 Implement configuration loading with Pydantic in `rag-chatbot-backend/app/config.py`
-- [ ] T020 Create asyncpg connection pool manager in `rag-chatbot-backend/app/database.py`
-- [ ] T021 Create Qdrant async client wrapper in `rag-chatbot-backend/app/qdrant_client.py`
-- [ ] T022 [P] Initialize Gemini client in `rag-chatbot-backend/app/gemini_client.py`
-- [ ] T023 Implement FastAPI app with CORS middleware in `rag-chatbot-backend/app/main.py`
-- [ ] T024 Create health check endpoint in `rag-chatbot-backend/app/api/health.py` (checks Postgres, Qdrant, Gemini)
+- [x] T019 Implement configuration loading with Pydantic in `rag-chatbot-backend/app/config.py`
+- [x] T020 Create asyncpg connection pool manager in `rag-chatbot-backend/app/database.py`
+- [x] T021 Create Qdrant async client wrapper in `rag-chatbot-backend/app/qdrant_client.py`
+- [x] T022 [P] Initialize Gemini client in `rag-chatbot-backend/app/gemini_client.py`
+- [x] T023 Implement FastAPI app with CORS middleware in `rag-chatbot-backend/app/main.py`
+- [x] T024 Create health check endpoint in `rag-chatbot-backend/app/api/health.py` (checks Postgres, Qdrant, Gemini)
 
 ### Request Infrastructure
 
-- [ ] T025 [P] Implement request tracing middleware with UUID generation in `rag-chatbot-backend/app/middleware/logging.py`
-- [ ] T026 [P] Setup structured JSON logging with structlog in `rag-chatbot-backend/app/middleware/logging.py`
-- [ ] T027 [P] Create Pydantic schemas for all API requests/responses in `rag-chatbot-backend/app/models/schemas.py`
+- [x] T025 [P] Implement request tracing middleware with UUID generation in `rag-chatbot-backend/app/middleware/logging.py`
+- [x] T026 [P] Setup structured JSON logging with structlog in `rag-chatbot-backend/app/middleware/logging.py`
+- [x] T027 [P] Create Pydantic schemas for all API requests/responses in `rag-chatbot-backend/app/models/schemas.py`
 
 ### Content Ingestion (Must complete before US1)
 
-- [ ] T028 Create MDX parser script (exclude code blocks, 500-token chunks, 50-token overlap) in `rag-chatbot-backend/scripts/parse_mdx.py`
-- [ ] T029 Implement batch embedding function using Gemini text-embedding-004 in `rag-chatbot-backend/app/services/ingestion.py`
-- [ ] T030 Create Qdrant upsert script for chunks in `rag-chatbot-backend/scripts/ingest_textbook.py`
+- [x] T028 Create MDX parser script (exclude code blocks, 500-token chunks, 50-token overlap) in `rag-chatbot-backend/scripts/parse_mdx.py`
+- [x] T029 Implement batch embedding function using Gemini text-embedding-004 in `rag-chatbot-backend/app/services/ingestion.py`
+- [x] T030 Create Qdrant upsert script for chunks in `rag-chatbot-backend/scripts/ingest_textbook.py`
 - [ ] T031 Run ingestion pipeline for English content (`book/docs/**/*.mdx` → `textbook_chunks_en`)
 - [ ] T032 Verify vector search quality: Query "what is forward kinematics" returns relevant chunks with > 0.7 similarity
 
@@ -124,22 +124,22 @@ This task list organizes implementation work by user story to enable independent
 
 ### Backend Implementation
 
-- [ ] T033 [US1] Implement vector search function in `rag-chatbot-backend/app/services/rag.py` (query embedding → Qdrant search with 0.7 threshold)
-- [ ] T034 [US1] Implement LLM streaming function with Gemini gemini-2.0-flash-exp in `rag-chatbot-backend/app/services/rag.py`
-- [ ] T035 [US1] Create RAG pipeline: search → format context → stream response in `rag-chatbot-backend/app/services/rag.py`
-- [ ] T036 [US1] Implement `/api/chat/query` endpoint (POST) with SSE streaming in `rag-chatbot-backend/app/api/chat.py`
-- [ ] T037 [US1] Add citation extraction logic (return chapter IDs from retrieved chunks) in `rag-chatbot-backend/app/services/rag.py`
-- [ ] T038 [US1] Handle fallback message when no results above 0.7 similarity threshold in `rag-chatbot-backend/app/api/chat.py`
+- [x] T033 [US1] Implement vector search function in `rag-chatbot-backend/app/services/rag.py` (query embedding → Qdrant search with 0.7 threshold)
+- [x] T034 [US1] Implement LLM streaming function with Gemini gemini-2.0-flash-exp in `rag-chatbot-backend/app/services/rag.py`
+- [x] T035 [US1] Create RAG pipeline: search → format context → stream response in `rag-chatbot-backend/app/services/rag.py`
+- [x] T036 [US1] Implement `/api/chat/query` endpoint (POST) with SSE streaming in `rag-chatbot-backend/app/api/chat.py`
+- [x] T037 [US1] Add citation extraction logic (return chapter IDs from retrieved chunks) in `rag-chatbot-backend/app/services/rag.py`
+- [x] T038 [US1] Handle fallback message when no results above 0.7 similarity threshold in `rag-chatbot-backend/app/api/chat.py`
 
 ### Frontend Implementation
 
-- [ ] T039 [P] [US1] Create ChatWidget component with open/close toggle in `book/src/components/ChatWidget/ChatWidget.tsx`
-- [ ] T040 [P] [US1] Create MessageList component displaying user/assistant messages in `book/src/components/ChatWidget/components/MessageList.tsx`
-- [ ] T041 [P] [US1] Create InputBox component with send button in `book/src/components/ChatWidget/components/InputBox.tsx`
-- [ ] T042 [US1] Implement SSE client hook for streaming responses in `book/src/components/ChatWidget/hooks/useStreamingQuery.ts`
-- [ ] T043 [US1] Add citation links that navigate to chapter sections in `book/src/components/ChatWidget/components/Message.tsx`
-- [ ] T044 [US1] Style chat widget (floating button, panel UI, responsive) in `book/src/components/ChatWidget/ChatWidget.module.css`
-- [ ] T045 [US1] Embed ChatWidget in Docusaurus theme wrapper at `book/src/theme/Root.tsx`
+- [x] T039 [P] [US1] Create ChatWidget component with open/close toggle in `book/src/components/ChatWidget/ChatWidget.tsx`
+- [x] T040 [P] [US1] Create MessageList component displaying user/assistant messages in `book/src/components/ChatWidget/components/MessageList.tsx`
+- [x] T041 [P] [US1] Create InputBox component with send button in `book/src/components/ChatWidget/components/InputBox.tsx`
+- [x] T042 [US1] Implement SSE client hook for streaming responses in `book/src/components/ChatWidget/hooks/useStreamingQuery.ts`
+- [x] T043 [US1] Add citation links that navigate to chapter sections in `book/src/components/ChatWidget/components/Message.tsx`
+- [x] T044 [US1] Style chat widget (floating button, panel UI, responsive) in `book/src/components/ChatWidget/ChatWidget.module.css`
+- [x] T045 [US1] Embed ChatWidget in Docusaurus theme wrapper at `book/src/theme/Root.tsx`
 
 ### Integration & Validation
 
@@ -195,14 +195,14 @@ This task list organizes implementation work by user story to enable independent
 
 ### Backend Implementation
 
-- [ ] T062 [US3] Implement session creation logic (generate session_token for anonymous users) in `rag-chatbot-backend/app/services/session.py`
-- [ ] T063 [US3] Save user queries and assistant responses to `chat_messages` table in `rag-chatbot-backend/app/api/chat.py`
-- [ ] T064 [US3] Implement `/api/chat/history` endpoint (GET) returning session messages in `rag-chatbot-backend/app/api/chat.py`
-- [ ] T065 [US3] Add pagination for history (limit 50 messages per page) in `rag-chatbot-backend/app/api/chat.py`
+- [x] T062 [US3] Implement session creation logic (generate session_token for anonymous users) in `rag-chatbot-backend/app/services/session.py`
+- [x] T063 [US3] Save user queries and assistant responses to `chat_messages` table in `rag-chatbot-backend/app/api/chat.py`
+- [x] T064 [US3] Implement `/api/chat/history` endpoint (GET) returning session messages in `rag-chatbot-backend/app/api/chat.py`
+- [x] T065 [US3] Add pagination for history (limit 50 messages per page) in `rag-chatbot-backend/app/api/chat.py`
 
 ### Frontend Implementation
 
-- [ ] T066 [P] [US3] Implement localStorage session token management in `book/src/components/ChatWidget/utils/session.ts`
+- [x] T066 [P] [US3] Implement localStorage session token management in `book/src/components/ChatWidget/utils/session.ts`
 - [ ] T067 [P] [US3] Create history loading hook on widget mount in `book/src/components/ChatWidget/hooks/useHistory.ts`
 - [ ] T068 [US3] Display loading state while fetching history in `book/src/components/ChatWidget/components/MessageList.tsx`
 - [ ] T069 [US3] Add "Load more" button for paginated history in `book/src/components/ChatWidget/components/MessageList.tsx`
@@ -258,13 +258,13 @@ This task list organizes implementation work by user story to enable independent
 
 - [ ] T085 Setup Better Auth configuration with email/password + OAuth providers
 - [ ] T086 Implement auth middleware for session validation in `rag-chatbot-backend/app/middleware/auth.py`
-- [ ] T087 Create `/api/chat/migrate` endpoint (POST) for localStorage → database migration in `rag-chatbot-backend/app/api/chat.py`
+- [x] T087 Create `/api/chat/migrate` endpoint (POST) for localStorage → database migration in `rag-chatbot-backend/app/api/chat.py`
 - [ ] T088 [P] Add "Sign up for unlimited history" prompt after 5 messages in `book/src/components/ChatWidget/components/UpgradePrompt.tsx`
 - [ ] T089 [P] Implement auth flow in frontend (login button, callback handling) in `book/src/components/ChatWidget/components/AuthButton.tsx`
 
 ### Feedback Collection
 
-- [ ] T090 [P] Implement `/api/chat/feedback` endpoint (POST) saving thumbs up/down in `rag-chatbot-backend/app/api/chat.py`
+- [x] T090 [P] Implement `/api/chat/feedback` endpoint (POST) saving thumbs up/down in `rag-chatbot-backend/app/api/chat.py`
 - [ ] T091 [P] Add thumbs up/down buttons to each assistant message in `book/src/components/ChatWidget/components/Message.tsx`
 - [ ] T092 [P] Track feedback submission state (prevent duplicate votes) in `book/src/components/ChatWidget/hooks/useFeedback.ts`
 
