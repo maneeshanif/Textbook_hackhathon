@@ -1,0 +1,106 @@
+/* Message component styles */
+
+.message {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.messageContent {
+  padding: 12px 16px;
+  border-radius: 12px;
+  max-width: 85%;
+  word-wrap: break-word;
+}
+
+.userMessage .messageContent {
+  align-self: flex-end;
+  background: var(--ifm-color-primary);
+  color: white;
+  border-bottom-right-radius: 4px;
+  margin-left: auto;
+}
+
+.assistantMessage .messageContent {
+  align-self: flex-start;
+  background: var(--ifm-background-surface-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-bottom-left-radius: 4px;
+}
+
+.messageText {
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.messageTime {
+  font-size: 11px;
+  color: var(--ifm-color-emphasis-600);
+  margin-top: 4px;
+  align-self: flex-end;
+}
+
+.citations {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.citationsLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ifm-color-emphasis-700);
+  margin-bottom: 6px;
+}
+
+.citationsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.citationLink {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: var(--ifm-color-primary-lightest);
+  color: var(--ifm-color-primary-dark);
+  border: 1px solid var(--ifm-color-primary-light);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.citationLink:hover {
+  background: var(--ifm-color-primary-light);
+  transform: translateY(-1px);
+}
+
+/* Dark mode adjustments */
+[data-theme='dark'] .assistantMessage .messageContent {
+  background: var(--ifm-background-color);
+  border-color: var(--ifm-color-emphasis-300);
+}
+
+[data-theme='dark'] .citationLink {
+  background: var(--ifm-color-primary-darker);
+  color: var(--ifm-color-primary-lightest);
+  border-color: var(--ifm-color-primary-dark);
+}
+
+[data-theme='dark'] .citationLink:hover {
+  background: var(--ifm-color-primary-dark);
+}

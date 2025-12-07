@@ -1,0 +1,122 @@
+.container {
+  position: relative;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--ifm-color-primary), var(--ifm-color-primary-dark));
+  color: white;
+  border: 2px solid var(--ifm-color-primary-light);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+}
+
+.dropdown {
+  position: fixed;
+  top: 60px;
+  right: 1rem;
+  background: var(--ifm-background-color);
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 250px;
+  max-width: 320px;
+  z-index: 1001;
+  animation: dropdownSlide 0.2s ease-out;
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header {
+  padding: 1rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ifm-heading-color);
+  margin-bottom: 0.25rem;
+}
+
+.email {
+  font-size: 0.875rem;
+  color: var(--ifm-color-emphasis-600);
+}
+
+.preferences {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.prefItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.prefLabel {
+  color: var(--ifm-color-emphasis-700);
+  font-weight: 500;
+}
+
+.prefValue {
+  color: var(--ifm-color-emphasis-900);
+  font-weight: 600;
+}
+
+.divider {
+  height: 1px;
+  background: var(--ifm-color-emphasis-200);
+  margin: 0.5rem 0;
+}
+
+.menuItem {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 0.875rem;
+  color: var(--ifm-color-emphasis-800);
+  cursor: pointer;
+  transition: background 0.2s;
+  border-radius: 0 0 12px 12px;
+}
+
+.menuItem:hover {
+  background: var(--ifm-color-emphasis-100);
+}

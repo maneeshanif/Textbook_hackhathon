@@ -1,0 +1,583 @@
+---
+title: "Glossary — Physical AI & Humanoid Robotics"
+sidebar_label: "📖 Glossary"
+sidebar_position: 99
+description: "Comprehensive glossary of technical terms, concepts, and acronyms used throughout the Physical AI & Humanoid Robotics course"
+tags: [glossary, reference, terminology]
+---
+
+# 📖 Glossary
+
+> **Quick Reference**: Definitions of all technical terms, concepts, and acronyms used in this textbook. Terms are organized alphabetically within categories for easy lookup.
+
+---
+
+## A
+
+### Actuator
+A mechanical device that converts energy (electrical, hydraulic, pneumatic) into physical motion. In robotics, actuators control joint movements.
+- **Types**: Electric motors, hydraulic cylinders, pneumatic pistons, artificial muscles
+- **Used in**: Modules 2, 3
+- **Related**: [Motor](#motor), [Servo](#servo)
+
+### AI (Artificial Intelligence)
+The simulation of human intelligence processes by machines, especially computer systems. Includes learning, reasoning, and self-correction.
+- **Related**: [Physical AI](#physical-ai), [Embodied AI](#embodied-ai), [Machine Learning](#machine-learning)
+
+### Autonomous
+The ability of a system to operate independently without human intervention, making decisions based on sensor input and programmed logic.
+- **Example**: Self-driving cars, autonomous drones
+- **Related**: [Navigation](#navigation), [Path Planning](#path-planning)
+
+---
+
+## B
+
+### Bipedal Locomotion
+Walking or running on two legs, characteristic of humans and humanoid robots. Requires complex balance control and dynamic stability.
+- **Challenges**: Balance, energy efficiency, terrain adaptation
+- **Used in**: Modules 2, 3
+- **Related**: [ZMP](#zmp-zero-moment-point), [Gait](#gait), [Humanoid](#humanoid)
+
+### Boston Dynamics
+A robotics company known for advanced dynamic robots including Atlas (humanoid), Spot (quadruped), and Handle (wheeled biped).
+- **Notable Achievements**: Parkour, backflips, dynamic manipulation
+- **Used in**: Module 1 case studies
+- **Related**: [Atlas](#atlas), [Humanoid](#humanoid)
+
+---
+
+## C
+
+### Camera (Robot Vision)
+A sensor that captures visual information from the environment. Types include RGB, depth, stereo, and event-based cameras.
+- **Applications**: Object recognition, navigation, manipulation
+- **Used in**: Modules 1, 3, 4
+- **Related**: [Computer Vision](#computer-vision), [Depth Camera](#depth-camera), [LiDAR](#lidar)
+
+### Center of Mass (CoM)
+The point where the total mass of a body can be considered concentrated. Critical for balance and stability in bipedal robots.
+- **Symbol**: Often denoted as CoM or CM
+- **Used in**: Module 2 (kinematics and dynamics)
+- **Related**: [ZMP](#zmp-zero-moment-point), [Balance](#balance)
+
+### Computer Vision
+The field of AI that enables computers to interpret and understand visual information from the world.
+- **Techniques**: Object detection, segmentation, tracking, 3D reconstruction
+- **Used in**: Module 4
+- **Related**: [Deep Learning](#deep-learning), [CNN](#cnn-convolutional-neural-network)
+
+### CNN (Convolutional Neural Network)
+A deep learning architecture specialized for processing grid-like data such as images. Uses convolution layers to detect features.
+- **Applications**: Image classification, object detection, semantic segmentation
+- **Used in**: Module 4
+- **Related**: [Computer Vision](#computer-vision), [Deep Learning](#deep-learning)
+
+---
+
+## D
+
+### Deep Learning
+A subset of machine learning using neural networks with multiple layers to learn hierarchical representations of data.
+- **Applications**: Vision, speech, language, robotics control
+- **Used in**: Module 4
+- **Related**: [Neural Network](#neural-network), [CNN](#cnn-convolutional-neural-network), [Reinforcement Learning](#reinforcement-learning)
+
+### Depth Camera
+A camera that measures the distance to objects in the scene, producing a depth map alongside color images.
+- **Technologies**: Time-of-Flight (ToF), Structured Light, Stereo Vision
+- **Examples**: Intel RealSense, Microsoft Kinect, ZED
+- **Used in**: Modules 3, 4
+- **Related**: [LiDAR](#lidar), [Point Cloud](#point-cloud)
+
+### DDS (Data Distribution Service)
+A middleware protocol for real-time, scalable data exchange. Used by ROS 2 for inter-node communication.
+- **Features**: Publish-subscribe model, quality of service policies
+- **Used in**: Module 1 (ROS 2)
+- **Related**: [ROS 2](#ros-2-robot-operating-system-2), [Middleware](#middleware)
+
+### DOF (Degrees of Freedom)
+The number of independent parameters that define the configuration of a mechanical system. A humanoid may have 30+ DOF.
+- **Examples**: 1 DOF = sliding door, 6 DOF = free rigid body motion
+- **Used in**: Modules 2, 3
+- **Related**: [Joint](#joint), [Kinematics](#kinematics)
+
+### Dynamics
+The study of forces and torques that cause motion. In robotics, dynamics relates joint torques to accelerations.
+- **Equations**: Euler-Lagrange, Newton-Euler
+- **Used in**: Module 2
+- **Related**: [Kinematics](#kinematics), [Torque](#torque)
+
+---
+
+## E
+
+### Embodied AI
+See [Physical AI](#physical-ai). AI systems with physical bodies that interact with the real world.
+
+### EKF (Extended Kalman Filter)
+An extension of the Kalman Filter for nonlinear systems using linearization. Used for sensor fusion and state estimation.
+- **Applications**: Robot localization, IMU fusion
+- **Used in**: Module 3
+- **Related**: [Kalman Filter](#kalman-filter), [Sensor Fusion](#sensor-fusion)
+
+### Encoder
+A sensor that measures the position or velocity of a rotating shaft (motor or joint).
+- **Types**: Absolute, incremental, optical, magnetic
+- **Used in**: Modules 2, 3
+- **Related**: [Proprioception](#proprioception), [Sensor](#sensor)
+
+---
+
+## F
+
+### Force Sensor
+A sensor that measures forces applied to it. Critical for contact detection and manipulation.
+- **Types**: Load cells, force/torque sensors, tactile sensors
+- **Used in**: Modules 2, 3
+- **Related**: [Tactile Sensor](#tactile-sensor), [Proprioception](#proprioception)
+
+### Forward Kinematics
+Computing the end-effector position and orientation from joint angles. Maps joint space → Cartesian space.
+- **Equation**: `x = FK(θ)`
+- **Used in**: Module 2
+- **Related**: [Inverse Kinematics](#inverse-kinematics), [Kinematics](#kinematics)
+
+---
+
+## G
+
+### Gait
+The pattern of limb movement during locomotion. Humanoid gaits include walking, running, and climbing.
+- **Phases**: Stance phase, swing phase, double support
+- **Used in**: Module 2
+- **Related**: [Bipedal Locomotion](#bipedal-locomotion), [ZMP](#zmp-zero-moment-point)
+
+### Gazebo
+An open-source 3D robotics simulator supporting physics simulation, sensor simulation, and ROS integration.
+- **Features**: Physics engines (ODE, Bullet), plugin system, sensor models
+- **Used in**: Module 2
+- **Related**: [Simulation](#simulation), [Isaac Sim](#isaac-sim)
+
+### GPU (Graphics Processing Unit)
+Hardware accelerator for parallel computation, essential for deep learning training and inference.
+- **Brands**: NVIDIA, AMD
+- **Used in**: Module 4 (deep learning, simulation)
+- **Related**: [Deep Learning](#deep-learning), [Isaac Sim](#isaac-sim)
+
+---
+
+## H
+
+### Humanoid
+A robot with human-like form, typically including head, torso, two arms, and two legs.
+- **Examples**: Atlas, Optimus, ASIMO, Digit
+- **Used in**: All modules
+- **Related**: [Bipedal Locomotion](#bipedal-locomotion), [Physical AI](#physical-ai)
+
+---
+
+## I
+
+### IMU (Inertial Measurement Unit)
+A sensor that measures acceleration and angular velocity, used for orientation estimation and motion tracking.
+- **Components**: Accelerometer, gyroscope, sometimes magnetometer
+- **Used in**: Modules 1, 3
+- **Related**: [Sensor Fusion](#sensor-fusion), [Kalman Filter](#kalman-filter)
+
+### Inverse Kinematics (IK)
+Computing joint angles needed to achieve a desired end-effector position. Maps Cartesian space → joint space.
+- **Equation**: `θ = IK(x)`
+- **Methods**: Analytical, numerical (Jacobian-based, optimization)
+- **Used in**: Module 2
+- **Related**: [Forward Kinematics](#forward-kinematics), [Jacobian](#jacobian)
+
+### Isaac Sim
+NVIDIA's physics simulation platform for robotics, with photorealistic rendering and GPU acceleration.
+- **Features**: RTX ray tracing, synthetic data generation, ROS 2 integration
+- **Used in**: Module 3
+- **Related**: [Gazebo](#gazebo), [Simulation](#simulation)
+
+---
+
+## J
+
+### Jacobian
+A matrix of partial derivatives relating joint velocities to end-effector velocities. Used in inverse kinematics and control.
+- **Equation**: `v = J(θ) * θ̇`
+- **Used in**: Module 2
+- **Related**: [Inverse Kinematics](#inverse-kinematics), [Kinematics](#kinematics)
+
+### Joint
+A mechanical connection between two links that allows relative motion. Types include revolute (rotational) and prismatic (linear).
+- **Parameters**: Position, velocity, torque limits
+- **Used in**: All modules
+- **Related**: [DOF](#dof-degrees-of-freedom), [Actuator](#actuator)
+
+---
+
+## K
+
+### Kalman Filter
+An optimal state estimator for linear systems with Gaussian noise. Combines predictions with measurements to reduce uncertainty.
+- **Variants**: Extended (EKF), Unscented (UKF)
+- **Used in**: Module 3
+- **Related**: [Sensor Fusion](#sensor-fusion), [EKF](#ekf-extended-kalman-filter)
+
+### Kinematics
+The study of motion without considering forces. Describes positions, velocities, and accelerations of robot links.
+- **Types**: Forward, inverse
+- **Used in**: Module 2
+- **Related**: [Forward Kinematics](#forward-kinematics), [Inverse Kinematics](#inverse-kinematics), [Dynamics](#dynamics)
+
+---
+
+## L
+
+### LiDAR (Light Detection and Ranging)
+A sensor that measures distances using laser pulses, creating 3D point clouds of the environment.
+- **Applications**: Mapping, obstacle detection, navigation
+- **Used in**: Modules 1, 3, 4
+- **Related**: [Point Cloud](#point-cloud), [SLAM](#slam-simultaneous-localization-and-mapping)
+
+### Localization
+Determining the robot's position and orientation within a known or unknown environment.
+- **Methods**: GPS, visual odometry, particle filters
+- **Used in**: Modules 3, 4
+- **Related**: [SLAM](#slam-simultaneous-localization-and-mapping), [Navigation](#navigation)
+
+---
+
+## M
+
+### Machine Learning
+A subset of AI that enables systems to learn from data without explicit programming.
+- **Types**: Supervised, unsupervised, reinforcement learning
+- **Used in**: Module 4
+- **Related**: [Deep Learning](#deep-learning), [Reinforcement Learning](#reinforcement-learning)
+
+### Manipulation
+The ability of a robot to interact with and move objects in its environment using grippers or hands.
+- **Challenges**: Grasping, force control, dexterity
+- **Used in**: Modules 2, 3, 4
+- **Related**: [Gripper](#gripper), [Inverse Kinematics](#inverse-kinematics)
+
+### Middleware
+Software that connects different components of a system, enabling communication and data exchange.
+- **Example**: ROS 2 (uses DDS middleware)
+- **Used in**: Module 1
+- **Related**: [ROS 2](#ros-2-robot-operating-system-2), [DDS](#dds-data-distribution-service)
+
+### Motor
+An electrical device that converts electrical energy into rotational motion. Core actuator in most robots.
+- **Types**: DC, brushless DC (BLDC), stepper, servo
+- **Used in**: All modules
+- **Related**: [Actuator](#actuator), [Servo](#servo)
+
+---
+
+## N
+
+### Navigation
+The process of planning and executing paths from one location to another while avoiding obstacles.
+- **Components**: Mapping, localization, path planning, control
+- **Used in**: Modules 3, 4
+- **Related**: [Path Planning](#path-planning), [SLAM](#slam-simultaneous-localization-and-mapping)
+
+### Neural Network
+A computational model inspired by biological neurons, consisting of interconnected layers of nodes.
+- **Types**: Feedforward, convolutional (CNN), recurrent (RNN)
+- **Used in**: Module 4
+- **Related**: [Deep Learning](#deep-learning), [CNN](#cnn-convolutional-neural-network)
+
+---
+
+## O
+
+### Odometry
+Estimating position change over time using motion sensors (wheel encoders, IMU, visual features).
+- **Types**: Wheel odometry, visual odometry, inertial odometry
+- **Used in**: Modules 2, 3
+- **Related**: [Localization](#localization), [IMU](#imu-inertial-measurement-unit)
+
+---
+
+## P
+
+### Path Planning
+Computing a collision-free path from a start to goal configuration.
+- **Algorithms**: A*, RRT, PRM, potential fields
+- **Used in**: Module 3
+- **Related**: [Navigation](#navigation), [Trajectory](#trajectory)
+
+### Physical AI
+Artificial intelligence systems with physical embodiment that perceive and interact with the real world through sensors and actuators.
+- **Characteristics**: Embodiment, sensorimotor integration, real-world learning
+- **Used in**: Module 1
+- **Related**: [Embodied AI](#embodied-ai), [Robotics](#robotics)
+
+### Point Cloud
+A set of 3D points representing the surface of objects, typically generated by LiDAR or depth cameras.
+- **Format**: XYZ coordinates, often with color (RGB) or intensity
+- **Used in**: Modules 3, 4
+- **Related**: [LiDAR](#lidar), [Depth Camera](#depth-camera)
+
+### Proprioception
+A robot's sense of its own body configuration (joint positions, velocities, forces).
+- **Sensors**: Encoders, IMUs, force sensors
+- **Used in**: Module 3
+- **Related**: [Encoder](#encoder), [IMU](#imu-inertial-measurement-unit)
+
+---
+
+## Q
+
+### QoS (Quality of Service)
+Policies in ROS 2/DDS that control message reliability, durability, and delivery guarantees.
+- **Parameters**: Reliability (reliable/best-effort), durability, history
+- **Used in**: Module 1
+- **Related**: [ROS 2](#ros-2-robot-operating-system-2), [DDS](#dds-data-distribution-service)
+
+### Qdrant
+An open-source vector database for similarity search, used in RAG (Retrieval-Augmented Generation) systems.
+- **Features**: Fast approximate nearest neighbor search, filtering
+- **Used in**: RAG Chatbot (this textbook)
+- **Related**: [Vector Database](#vector-database), [Embedding](#embedding)
+
+---
+
+## R
+
+### RAG (Retrieval-Augmented Generation)
+An AI technique that enhances language model responses by retrieving relevant context from a knowledge base.
+- **Components**: Embedding model, vector database, language model
+- **Used in**: Chatbot feature of this textbook
+- **Related**: [Qdrant](#qdrant), [Vector Database](#vector-database)
+
+### Reinforcement Learning (RL)
+A machine learning paradigm where an agent learns by interacting with an environment and receiving rewards.
+- **Components**: Agent, environment, policy, reward function
+- **Algorithms**: Q-learning, PPO, SAC, DDPG
+- **Used in**: Module 4
+- **Related**: [Deep Learning](#deep-learning), [Simulation](#simulation)
+
+### RGB-D Camera
+See [Depth Camera](#depth-camera). Provides both color (RGB) and depth (D) information.
+
+### Robotics
+The interdisciplinary field combining mechanical engineering, electrical engineering, and computer science to design and build robots.
+- **Subfields**: Manipulation, locomotion, perception, control
+- **Used in**: All modules
+- **Related**: [Physical AI](#physical-ai), [Humanoid](#humanoid)
+
+### ROS 2 (Robot Operating System 2)
+An open-source middleware framework for building robot applications, providing tools, libraries, and communication infrastructure.
+- **Features**: Nodes, topics, services, actions, parameters
+- **Transport**: DDS (Data Distribution Service)
+- **Used in**: Module 1
+- **Related**: [DDS](#dds-data-distribution-service), [Middleware](#middleware)
+
+---
+
+## S
+
+### Sensor
+A device that detects physical phenomena and converts them into signals readable by the robot's controller.
+- **Types**: Vision, proprioceptive, exteroceptive, force/tactile
+- **Used in**: All modules
+- **Related**: [Camera](#camera-robot-vision), [LiDAR](#lidar), [IMU](#imu-inertial-measurement-unit)
+
+### Sensor Fusion
+Combining data from multiple sensors to produce more accurate and robust state estimates than any single sensor.
+- **Methods**: Kalman filtering, complementary filters, particle filters
+- **Used in**: Module 3
+- **Related**: [Kalman Filter](#kalman-filter), [IMU](#imu-inertial-measurement-unit)
+
+### Servo
+A motorized actuator with built-in position feedback control, commonly used in robotics.
+- **Types**: Analog, digital, smart servos
+- **Used in**: Modules 2, 3
+- **Related**: [Motor](#motor), [Actuator](#actuator)
+
+### Simulation
+Creating a virtual environment to test and develop robot systems before deployment on physical hardware.
+- **Benefits**: Safety, speed, repeatability, synthetic data generation
+- **Tools**: Gazebo, Isaac Sim, Unity, PyBullet
+- **Used in**: Modules 2, 3, 4
+- **Related**: [Gazebo](#gazebo), [Isaac Sim](#isaac-sim), [Sim-to-Real](#sim-to-real)
+
+### Sim-to-Real
+The process of transferring policies learned in simulation to real-world robots.
+- **Challenges**: Simulation gaps (physics, sensors, domain shift)
+- **Techniques**: Domain randomization, system identification
+- **Used in**: Module 4
+- **Related**: [Simulation](#simulation), [Reinforcement Learning](#reinforcement-learning)
+
+### SLAM (Simultaneous Localization and Mapping)
+Building a map of an unknown environment while simultaneously tracking the robot's location within it.
+- **Types**: Visual SLAM (VSLAM), LiDAR SLAM
+- **Algorithms**: EKF-SLAM, FastSLAM, ORB-SLAM
+- **Used in**: Modules 3, 4
+- **Related**: [Localization](#localization), [Mapping](#mapping)
+
+---
+
+## T
+
+### Tactile Sensor
+A sensor that detects contact, pressure, or texture through physical touch.
+- **Applications**: Grasping, manipulation, object recognition
+- **Used in**: Module 3
+- **Related**: [Force Sensor](#force-sensor), [Manipulation](#manipulation)
+
+### Torque
+A rotational force that causes rotation about an axis. In robotics, motors produce torque at joints.
+- **Units**: Newton-meters (N⋅m)
+- **Used in**: Modules 2, 3
+- **Related**: [Motor](#motor), [Dynamics](#dynamics)
+
+### Trajectory
+A time-parameterized path describing how a robot should move through space.
+- **Components**: Position, velocity, acceleration profiles
+- **Used in**: Modules 2, 3
+- **Related**: [Path Planning](#path-planning), [Kinematics](#kinematics)
+
+---
+
+## U
+
+### Unity
+A game engine adapted for robotics simulation, offering high-fidelity graphics and physics.
+- **Robotics Use**: Synthetic data generation, visual perception testing
+- **Used in**: Module 2
+- **Related**: [Simulation](#simulation), [Isaac Sim](#isaac-sim)
+
+### URDF (Unified Robot Description Format)
+An XML format for describing robot kinematics, dynamics, and visual properties.
+- **Components**: Links, joints, collision, visual, inertial properties
+- **Used in**: Module 1 (ROS 2)
+- **Related**: [ROS 2](#ros-2-robot-operating-system-2), [Kinematics](#kinematics)
+
+---
+
+## V
+
+### Vector Database
+A database optimized for storing and searching high-dimensional vectors (embeddings).
+- **Examples**: Qdrant, Pinecone, Weaviate, Milvus
+- **Used in**: RAG systems, semantic search
+- **Related**: [Qdrant](#qdrant), [Embedding](#embedding), [RAG](#rag-retrieval-augmented-generation)
+
+### Vision System
+The combination of cameras and algorithms that enable a robot to perceive and interpret visual information.
+- **Components**: Cameras, image processing, computer vision algorithms
+- **Used in**: Modules 3, 4
+- **Related**: [Camera](#camera-robot-vision), [Computer Vision](#computer-vision)
+
+### VLA (Vision-Language-Action)
+AI models that connect visual perception, language understanding, and robotic actions.
+- **Capabilities**: Voice commands → robot actions, multimodal reasoning
+- **Used in**: Module 4
+- **Related**: [LLM](#llm-large-language-model), [Computer Vision](#computer-vision)
+
+### VSLAM (Visual SLAM)
+SLAM using cameras as the primary sensor, reconstructing 3D structure from visual features.
+- **Advantages**: Cheap sensors, rich information
+- **Challenges**: Lighting sensitivity, scale ambiguity
+- **Used in**: Module 3
+- **Related**: [SLAM](#slam-simultaneous-localization-and-mapping), [Camera](#camera-robot-vision)
+
+---
+
+## W
+
+### Wheeled Robot
+A robot that uses wheels for locomotion, offering simplicity and efficiency on flat surfaces.
+- **Examples**: TurtleBot, Fetch, warehouse robots
+- **Trade-off**: Efficient but limited to flat terrain
+- **Used in**: Module 1 comparisons
+- **Related**: [Locomotion](#locomotion), [Humanoid](#humanoid)
+
+---
+
+## Z
+
+### ZMP (Zero Moment Point)
+The point on the ground where the net moment from gravity and inertia is zero. Used for bipedal balance control.
+- **Stability**: ZMP inside support polygon → stable; outside → falling
+- **Used in**: Module 2
+- **Related**: [Bipedal Locomotion](#bipedal-locomotion), [Balance](#balance), [Gait](#gait)
+
+---
+
+## Additional Terms
+
+### Embedding
+A dense vector representation of data (text, images) that captures semantic meaning, used in similarity search.
+- **Models**: text-embedding-004, CLIP, BERT embeddings
+- **Dimension**: Typically 128-1536 dimensions
+- **Used in**: RAG chatbot
+- **Related**: [Vector Database](#vector-database), [RAG](#rag-retrieval-augmented-generation)
+
+### Gripper
+An end-effector designed to grasp and manipulate objects.
+- **Types**: Parallel jaw, suction, soft robotic, multi-finger
+- **Used in**: Modules 2, 3, 4
+- **Related**: [Manipulation](#manipulation), [End-Effector](#end-effector)
+
+### End-Effector
+The device at the end of a robotic arm that interacts with the environment (gripper, tool, sensor).
+- **Examples**: Grippers, welding tools, spray nozzles
+- **Used in**: Modules 2, 3
+- **Related**: [Manipulation](#manipulation), [Inverse Kinematics](#inverse-kinematics)
+
+### LLM (Large Language Model)
+A deep learning model trained on vast text data to understand and generate human language.
+- **Examples**: GPT-4, Gemini, Claude, Llama
+- **Applications**: Chatbots, code generation, robotic task planning
+- **Used in**: Module 4, RAG chatbot
+- **Related**: [VLA](#vla-vision-language-action), [RAG](#rag-retrieval-augmented-generation)
+
+### Mapping
+Creating a representation of the environment for navigation and localization.
+- **Types**: Occupancy grid, topological, semantic
+- **Used in**: Modules 3, 4
+- **Related**: [SLAM](#slam-simultaneous-localization-and-mapping), [Navigation](#navigation)
+
+### Locomotion
+The ability to move from one place to another. Types include wheeled, legged, aerial, aquatic.
+- **Used in**: All modules
+- **Related**: [Bipedal Locomotion](#bipedal-locomotion), [Gait](#gait)
+
+### Balance
+Maintaining stability by keeping the center of mass over the support base.
+- **Methods**: ZMP control, MPC, feedback stabilization
+- **Used in**: Module 2
+- **Related**: [ZMP](#zmp-zero-moment-point), [Bipedal Locomotion](#bipedal-locomotion)
+
+### Atlas
+Boston Dynamics' advanced humanoid robot, known for parkour, backflips, and dynamic manipulation.
+- **Specs**: ~1.5m tall, ~80kg, 28 DOF
+- **Used in**: Module 1 case study
+- **Related**: [Boston Dynamics](#boston-dynamics), [Humanoid](#humanoid)
+
+---
+
+## 🔗 Navigation Tips
+
+**Finding Terms:**
+- Use browser search (Ctrl+F / Cmd+F) to quickly locate terms
+- Click on "Related" links to explore connected concepts
+- Check "Used in" sections to see where concepts are taught
+
+**Using the Glossary:**
+- First encounter of a term in chapters? Check here for definition
+- Building a mental model? Follow the "Related" concept chains
+- Preparing for assessments? Review terms by module
+
+**Contributing:**
+If you notice a missing term or unclear definition, please open an issue on our [GitHub repository](https://github.com/maneeshanif/Textbook_hackhathon).
+
+---
+
+*Last updated: December 2025*
